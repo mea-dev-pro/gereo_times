@@ -51,12 +51,21 @@ const client = new pg.Client({
 await client.connect();
 console.log(`\n  Connecté à ${new URL(url).host}\n`);
 
+// La table de suivi vit dans le schéma public, donc exposé par PostgREST.
+// RLS activée sans aucune policy : inaccessible au client, seul le rôle
+// propriétaire (utilisé par ce script) peut la lire.
 await client.query(`
   create table if not exists public.schema_migrations (
     version    text primary key,
     applied_at timestamptz not null default now()
   )
 `);
+await client.query(
+  `alter table public.schema_migrations enable row level security`
+);
+await client.query(
+  `revoke all on public.schema_migrations from anon, authenticated`
+);
 
 const files = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql"))
