@@ -76,6 +76,7 @@ supabase/migrations/
   0002_rls.sql              helpers + policies RLS + garde-fous
   0003_business_logic.sql   RPC transactionnelles métier
   0004_invitations.sql      invitations de collaborateurs
+  0005_config_audit.sql     journalisation des modifications de configuration
 
 src/
   app/
@@ -152,14 +153,15 @@ pages publiques ont été vérifiées dans un navigateur.
 - **invitations de collaborateurs** : lien d'activation sans mot de passe,
   acceptation automatique à la première connexion, révocation
 - **gestion de l'équipe** : rôles, rattachement hiérarchique, désactivation
+- **administration RH** : départements, jours fériés, types de congés,
+  politiques versionnées (acquisition, préavis, niveaux de validation),
+  calendriers de travail — chaque modification journalisée automatiquement
 
 **À venir (phase 2, sprints 4 à 6)**
 
 - calendrier d'équipe (vues mensuelle et hebdomadaire des disponibilités)
 - tableaux de bord RH agrégés et exports
 - notifications internes et par email (Resend)
-- administration RH complète (horaires, jours fériés, types de congés,
-  politiques, circuits de validation multi-niveaux)
 - tests Playwright, déploiement Vercel
 
 ---

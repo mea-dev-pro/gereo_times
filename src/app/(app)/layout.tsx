@@ -26,6 +26,7 @@ export default async function AppLayout({
   }
   if (isHrOrAdmin(session.membership.role)) {
     items.push({ href: "/equipe", label: "Équipe" });
+    items.push({ href: "/parametres", label: "Paramètres RH" });
   }
 
   return (

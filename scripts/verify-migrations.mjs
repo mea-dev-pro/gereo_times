@@ -360,7 +360,48 @@ const visibleInvitations = await q(`select count(*)::int as n from public.invita
 check("Un employé ne voit aucune invitation", visibleInvitations[0].n === 0);
 
 // =============================================================================
-console.log("\n=== 6. Scénario métier complet ===");
+console.log("\n=== 6. Journalisation des modifications de configuration ===");
+await setUser(adminId);
+
+await q(
+  `insert into public.departments (organization_id, name, code)
+   values ($1, 'Production', 'PROD')`, [org]);
+const deptAudit = await q(
+  `select action from public.audit_logs
+   where organization_id = $1 and entity_type = 'departments'
+   order by created_at desc limit 1`, [org]);
+check("Création d'un département journalisée",
+  deptAudit[0]?.action === "departments.insert", deptAudit[0]?.action ?? "aucune entrée");
+
+await q(
+  `update public.departments set name = 'Production & Logistique'
+   where organization_id = $1`, [org]);
+const deptAudit2 = await q(
+  `select before, after from public.audit_logs
+   where organization_id = $1 and action = 'departments.update'
+   order by created_at desc limit 1`, [org]);
+check("Modification journalisée avec l'état avant et après",
+  deptAudit2[0]?.before?.name === "Production" &&
+    deptAudit2[0]?.after?.name === "Production & Logistique",
+  `${deptAudit2[0]?.before?.name} → ${deptAudit2[0]?.after?.name}`);
+
+// Un employé ne peut pas toucher aux paramètres RH
+await setUser(empId);
+const deptCountBefore = await q(
+  `select count(*)::int as n from public.departments where organization_id = $1`, [org]);
+const deptAttempt = await q(
+  `update public.departments set name = 'Détourné'
+   where organization_id = $1 returning id`, [org]);
+check("Un employé ne peut pas modifier les paramètres RH",
+  deptAttempt.length === 0, `${deptAttempt.length} ligne(s) modifiée(s)`);
+
+const deptCountAfter = await q(
+  `select count(*)::int as n from public.departments where organization_id = $1`, [org]);
+check("Le département est resté intact",
+  deptCountAfter[0].n === deptCountBefore[0].n);
+
+// =============================================================================
+console.log("\n=== 7. Scénario métier complet ===");
 await setUser(empId);
 
 console.log("\n  -- Pointage --");
@@ -490,7 +531,7 @@ check("Annulation d'une demande en attente libère la réservation",
   `disponible ${balReleased.available_days} j`);
 
 // =============================================================================
-console.log("\n=== 7. Journal des mouvements ===");
+console.log("\n=== 8. Journal des mouvements ===");
 await asOwner(async () => {
   const ledger = await q(
     `select movement, amount, note from public.leave_ledger
