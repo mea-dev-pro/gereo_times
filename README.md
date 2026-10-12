@@ -111,18 +111,26 @@ sur la plage de dates, limitée aux demandes actives.
 
 ## Vérification
 
-Les migrations ont été exécutées contre un vrai PostgreSQL 18 (PGlite/WASM avec
-`btree_gist` et `pgcrypto`), suivi d'un scénario métier complet : 47 contrôles,
-0 échec. Couverture :
+```bash
+npm run db:verify    # aucune dépendance externe : ni Docker, ni serveur PostgreSQL
+```
+
+Le script exécute les migrations contre un vrai PostgreSQL 18 (PGlite / WASM,
+avec `btree_gist` et `pgcrypto`), puis déroule un scénario complet **en rôle non
+privilégié** — condition indispensable pour que les policies RLS soient
+réellement appliquées et non contournées. 46 contrôles, 0 échec. Couverture :
 
 - exécution des 3 migrations, 16 tables, RLS active sur les 16
+- **isolation RLS** : un employé ne voit ni les pointages ni les demandes d'un
+  collègue ; un admin d'une autre organisation ne voit rien ; écriture directe
+  dans `leave_ledger`, `leave_approvals` ou `audit_logs` refusée au client
 - amorçage d'organisation (calendrier, types de congés, politiques, fériés)
 - pointage : session unique, pauses, minutes effectives et écarts
 - correction d'un pointage clôturé par validation obligatoire
 - calcul des jours ouvrés avec week-ends, fériés et demi-journées
 - soldes : refus si insuffisant, réservation, consommation, restitution
 - **double validation concurrente impossible sur un même solde**
-- anti-escalade de privilèges, isolation entre organisations, journal d'audit
+- anti-escalade de privilèges, journal d'audit alimenté
 
 L'application compile et se construit sans erreur (`npm run build`), et les
 pages publiques ont été vérifiées dans un navigateur.
