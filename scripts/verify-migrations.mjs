@@ -531,7 +531,58 @@ check("Annulation d'une demande en attente libère la réservation",
   `disponible ${balReleased.available_days} j`);
 
 // =============================================================================
-console.log("\n=== 8. Journal des mouvements ===");
+console.log("\n=== 8. Calendrier d'équipe ===");
+
+// Une absence approuvée, portant un motif qui ne doit jamais fuiter
+await setUser(empId);
+const [calReq] = await q(
+  `select public.submit_leave_request($1, $2, '2027-01-04', '2027-01-05', null, null,
+     'Motif confidentiel — ne doit pas fuiter') as id`, [org, annual.id]);
+await setUser(adminId);
+await q(`select public.decide_leave_request($1, true, 'ok')`, [calReq.id]);
+
+// Un collègue, sans lien hiérarchique avec elle
+const collegueId = await createUser("collegue@acme.mg", "Collègue Simple");
+await q(
+  `insert into public.organization_members
+     (organization_id, user_id, role, status, work_schedule_id)
+   select $1, $2, 'employee', 'active', ws.id
+   from public.work_schedules ws
+   where ws.organization_id = $1 and ws.is_default`, [org, collegueId]);
+
+await setUser(collegueId);
+
+const visibleViaView = await q(
+  `select member_name, leave_type_name, start_date, end_date from public.team_absences`);
+check("Un collègue voit les absences approuvées de l'équipe",
+  visibleViaView.length === 1,
+  `${visibleViaView.length} absence(s) — ${visibleViaView[0]?.member_name ?? "—"}`);
+
+const rawRequests = await q(`select count(*)::int as n from public.leave_requests`);
+check("Mais pas le détail brut des demandes d'autrui (RLS)",
+  rawRequests[0].n === 0, `${rawRequests[0].n} demande(s) brute(s) visible(s)`);
+
+const viewColumns = await q(`
+  select column_name from information_schema.columns
+  where table_schema = 'public' and table_name = 'team_absences' order by 1
+`);
+const cols = viewColumns.map((c) => c.column_name);
+check("La vue n'expose aucune colonne de motif",
+  !cols.includes("reason") && !cols.includes("notes") && !cols.includes("decision_comment"),
+  cols.join(", "));
+
+await expectError(
+  "Tenter de lire le motif depuis la vue échoue",
+  () => q(`select reason from public.team_absences`),
+  "does not exist");
+
+await setUser(strangerId);
+const crossAbsences = await q(`select count(*)::int as n from public.team_absences`);
+check("Un admin d'une autre organisation ne voit aucune absence",
+  crossAbsences[0].n === 0);
+
+// =============================================================================
+console.log("\n=== 9. Journal des mouvements ===");
 await asOwner(async () => {
   const ledger = await q(
     `select movement, amount, note from public.leave_ledger

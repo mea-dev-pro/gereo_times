@@ -20,6 +20,7 @@ export default async function AppLayout({
     { href: "/", label: "Tableau de bord" },
     { href: "/pointage", label: "Pointage" },
     { href: "/conges", label: "Mes congés" },
+    { href: "/calendrier", label: "Calendrier" },
   ];
   if (canManage(session.membership.role)) {
     items.push({ href: "/validations", label: "Validations" });

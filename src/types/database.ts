@@ -315,6 +315,22 @@ export type Database = {
         };
         Relationships: [];
       };
+      team_absences: {
+        Row: {
+          organization_id: string;
+          member_id: string;
+          member_name: string | null;
+          leave_type_id: string;
+          leave_type_name: string;
+          leave_type_color: string;
+          start_date: string;
+          end_date: string;
+          start_half: HalfDay | null;
+          end_half: HalfDay | null;
+          total_days: number;
+        };
+        Relationships: [];
+      };
     };
 
     Functions: {

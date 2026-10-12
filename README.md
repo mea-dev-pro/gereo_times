@@ -77,6 +77,7 @@ supabase/migrations/
   0003_business_logic.sql   RPC transactionnelles métier
   0004_invitations.sql      invitations de collaborateurs
   0005_config_audit.sql     journalisation des modifications de configuration
+  0006_team_calendar.sql    vue des absences d'équipe, sans les motifs
 
 src/
   app/
@@ -156,10 +157,11 @@ pages publiques ont été vérifiées dans un navigateur.
 - **administration RH** : départements, jours fériés, types de congés,
   politiques versionnées (acquisition, préavis, niveaux de validation),
   calendriers de travail — chaque modification journalisée automatiquement
+- **calendrier d'équipe** : vues mensuelle et hebdomadaire des disponibilités,
+  exposant les absences approuvées **sans jamais les motifs**
 
 **À venir (phase 2, sprints 4 à 6)**
 
-- calendrier d'équipe (vues mensuelle et hebdomadaire des disponibilités)
 - tableaux de bord RH agrégés et exports
 - notifications internes et par email (Resend)
 - tests Playwright, déploiement Vercel
