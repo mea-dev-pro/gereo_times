@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { dispatchPendingEmails } from "@/lib/notifications/email";
 import type { ActionState } from "@/lib/auth/actions";
 
 function traduire(message: string): string {
@@ -124,6 +125,9 @@ export async function decideAdjustment(
     p_comment: comment || null,
   });
   if (error) return { error: traduire(error.message) };
+
+  // File d'envoi email : la RPC a déposé la notification de décision.
+  await dispatchPendingEmails();
 
   revalidatePath("/validations");
   revalidatePath("/pointage");

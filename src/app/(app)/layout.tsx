@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { canManage, isHrOrAdmin, requireSession } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,20 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await requireSession();
+  const supabase = await createClient();
+
+  const { count: unreadCount } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("member_id", session.membership.id)
+    .is("read_at", null);
 
   const items: NavItem[] = [
     { href: "/", label: "Tableau de bord" },
     { href: "/pointage", label: "Pointage" },
     { href: "/conges", label: "Mes congés" },
     { href: "/calendrier", label: "Calendrier" },
+    { href: "/notifications", label: "Notifications", badge: unreadCount ?? 0 },
   ];
   if (canManage(session.membership.role)) {
     items.push({ href: "/validations", label: "Validations" });

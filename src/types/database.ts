@@ -265,6 +265,8 @@ export type Database = {
         link: string | null;
         payload: Json;
         read_at: string | null;
+        email_sent_at: string | null;
+        email_error: string | null;
         created_at: string;
       }>;
 

@@ -38,6 +38,11 @@ Puis, depuis Project Settings → Database → Connection string :
 
 - `SUPABASE_DB_URL` — nécessaire pour appliquer les migrations
 
+Pour les notifications par email (facultatif) :
+
+- `RESEND_API_KEY` et `EMAIL_FROM` — sans eux, l'application fonctionne
+  normalement et aucun email n'est expédié ; les notifications restent internes
+
 `.env.local` est exclu du dépôt par `.gitignore`. Ne jamais exposer
 `SUPABASE_SERVICE_ROLE_KEY` côté client : elle contourne intégralement la RLS.
 
@@ -78,6 +83,7 @@ supabase/migrations/
   0004_invitations.sql      invitations de collaborateurs
   0005_config_audit.sql     journalisation des modifications de configuration
   0006_team_calendar.sql    vue des absences d'équipe, sans les motifs
+  0007_notification_outbox.sql  file d'envoi des notifications par email
 
 src/
   app/
@@ -165,10 +171,12 @@ pages publiques ont été vérifiées dans un navigateur.
 - **rapports RH** : indicateurs agrégés filtrables par période (effectif, temps
   effectif, écarts, congés par type, anomalies) et **exports CSV** de la
   présence, des congés et des soldes
+- **notifications** : fil interne avec compteur de non-lues, alimenté par les
+  RPC métier ; table servant de **boîte d'envoi email** (Resend), avec état
+  d'expédition et trace d'échec en base
 
 **À venir (phase 2, sprints 4 à 6)**
 
-- notifications internes et par email (Resend)
 - tests Playwright, déploiement Vercel
 
 ---

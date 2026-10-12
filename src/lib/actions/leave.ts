@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { dispatchPendingEmails } from "@/lib/notifications/email";
 import type { ActionState } from "@/lib/auth/actions";
 import type { HalfDay } from "@/types/database";
 
@@ -58,6 +59,9 @@ export async function decideLeaveRequest(
     p_comment: comment || null,
   });
   if (error) return { error: error.message };
+
+  // Les notifications sont déposées en base par la RPC ; on vide la file email.
+  await dispatchPendingEmails();
 
   revalidatePath("/validations");
   revalidatePath("/conges");
