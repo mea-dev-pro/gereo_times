@@ -16,6 +16,9 @@ import { DecisionPanel } from "./decision-panel";
 
 export const metadata: Metadata = { title: "Validations" };
 
+// Page bloquante : elle lit la session et l'heure courante à chaque requête.
+export const instant = false;
+
 export default async function ValidationsPage() {
   const session = await requireSession();
   if (!canManage(session.membership.role)) redirect("/");

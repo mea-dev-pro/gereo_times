@@ -12,6 +12,9 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/alert";
 import { formatDate, formatDateTime, formatMinutes } from "@/lib/utils";
 
+// Page bloquante : elle lit la session et l'heure courante à chaque requête.
+export const instant = false;
+
 /** Lundi 00:00 de la semaine contenant `date`, en ISO (yyyy-mm-dd). */
 function weekBounds(date: Date) {
   const d = new Date(

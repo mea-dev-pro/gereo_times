@@ -16,6 +16,9 @@ import { CancelLeaveButton } from "./cancel-button";
 
 export const metadata: Metadata = { title: "Mes congés" };
 
+// Page bloquante : elle lit la session et l'heure courante à chaque requête.
+export const instant = false;
+
 export default async function CongesPage() {
   const session = await requireSession();
   const supabase = await createClient();

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -68,6 +69,11 @@ export const isAuthenticatedWithoutOrganization = cache(async () => {
 });
 
 export async function requireSession(): Promise<SessionContext> {
+  // Force le rendu à la requête. Les pages calculent des dates (semaine et mois
+  // en cours) : sans cela Next signale « Date.now() rencontré pendant le
+  // prérendu » sous Cache Components.
+  await connection();
+
   const session = await getSession();
   if (!session) redirect("/organisation/nouvelle");
   return session;

@@ -5,9 +5,8 @@ import { NavLinks, type NavItem } from "@/components/nav-links";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/utils";
 
-// Toutes les pages de l'application dépendent de la session (cookies) :
-// aucun prérendu statique n'est possible. Avec Cache Components, on déclare
-// la route bloquante plutôt que d'utiliser `dynamic`.
+// Les pages de l'application dépendent de la session et de l'heure courante :
+// rendu à la requête (voir requireSession, qui appelle `connection()`).
 export const instant = false;
 
 export default async function AppLayout({

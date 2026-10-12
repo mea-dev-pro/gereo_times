@@ -16,6 +16,9 @@ import { AdjustmentForm, type AdjustableEntry } from "./adjustment-form";
 
 export const metadata: Metadata = { title: "Pointage" };
 
+// Page bloquante : elle lit la session et l'heure courante à chaque requête.
+export const instant = false;
+
 export default async function PointagePage() {
   const session = await requireSession();
   const supabase = await createClient();
