@@ -2,7 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Routes accessibles sans session. */
-const PUBLIC_PATHS = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
+const PUBLIC_PATHS = [
+  "/connexion",
+  "/inscription",
+  "/mot-de-passe-oublie",
+  "/auth",
+];
 
 /**
  * Rafraîchit la session Supabase à chaque requête et protège les routes privées.

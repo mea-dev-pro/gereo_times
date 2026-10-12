@@ -21,6 +21,11 @@ export default async function NouvelleOrganisationPage() {
   const session = await getSession();
   if (session) redirect("/");
 
+  // Une invitation en attente pour cette adresse ? On la solde, et le
+  // collaborateur entre directement dans l'organisation qui l'a invité.
+  const { data: accepted } = await supabase.rpc("accept_pending_invitation");
+  if (accepted) redirect("/");
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">

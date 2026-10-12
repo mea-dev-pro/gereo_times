@@ -169,10 +169,10 @@ const noRls = await q(`
 
 console.log(`  Extensions    : ${ext.map((r) => r.extname).join(", ")}`);
 console.log(`  Tables (${tables.length})     : ${tables.map((r) => r.table_name).join(", ")}`);
-check("RLS activée sur les 16 tables", tables.length === 16 && noRls.length === 0,
+check("RLS activée sur les 17 tables", tables.length === 17 && noRls.length === 0,
   `${policies.length} tables avec policies`);
 check("Toutes les tables ont au moins une policy",
-  policies.length === 16, `${policies.length}/16`);
+  policies.length === 17, `${policies.length}/17`);
 
 // =============================================================================
 console.log("\n=== 2. Bascule en rôle non privilégié (la RLS s'applique) ===");
@@ -298,7 +298,69 @@ check("Aucun mouvement de solde d'Acme n'est visible depuis Beta",
   crossLedger[0].n === 0);
 
 // =============================================================================
-console.log("\n=== 5. Scénario métier complet ===");
+console.log("\n=== 5. Invitations de collaborateurs ===");
+
+// Un employé n'a pas le droit d'inviter
+await setUser(empId);
+await expectError(
+  "Un employé ne peut pas inviter de collaborateur",
+  () => q(`select public.invite_member($1, 'intrus@acme.mg')`, [org]),
+  "Réservé aux RH");
+
+await setUser(adminId);
+const inviteeId = await createUser("nouveau@acme.mg", "Nouveau Collaborateur");
+
+const [inv] = await q(
+  `select public.invite_member($1, 'nouveau@acme.mg', 'manager', null, $2,
+     'Chef de projet', '2026-11-02') as id`,
+  [org, adminMember.id]);
+check("L'administrateur crée une invitation", Boolean(inv.id));
+
+const [invRow] = await q(
+  `select status, role, email from public.invitations where id = $1`, [inv.id]);
+check("Invitation en attente avec le rôle demandé",
+  invRow.status === "pending" && invRow.role === "manager",
+  `${invRow.email} · ${invRow.role}`);
+
+await expectError(
+  "Inviter une personne déjà membre est refusé",
+  () => q(`select public.invite_member($1, 'employe@acme.mg')`, [org]),
+  "fait déjà partie");
+
+// L'invité rejoint l'organisation à sa première connexion
+await setUser(inviteeId);
+const [accepted] = await q(`select public.accept_pending_invitation() as member_id`);
+check("L'invité devient membre à sa première connexion", Boolean(accepted.member_id));
+
+const [newMember] = await q(
+  `select role, job_title, manager_id from public.organization_members where user_id = $1`,
+  [inviteeId]);
+check("Rôle, intitulé et responsable de l'invitation sont appliqués",
+  newMember.role === "manager" && newMember.manager_id === adminMember.id,
+  `${newMember.role} · ${newMember.job_title}`);
+
+const [acceptedAgain] = await q(`select public.accept_pending_invitation() as member_id`);
+check("Accepter deux fois ne crée pas de doublon", acceptedAgain.member_id === null);
+
+// Révocation
+await setUser(adminId);
+const [inv2] = await q(`select public.invite_member($1, 'annule@acme.mg') as id`, [org]);
+await q(`select public.revoke_invitation($1)`, [inv2.id]);
+const [revoked] = await q(`select status from public.invitations where id = $1`, [inv2.id]);
+check("Révocation d'une invitation en attente", revoked.status === "revoked");
+
+await expectError(
+  "Impossible de révoquer une invitation déjà acceptée",
+  () => q(`select public.revoke_invitation($1)`, [inv.id]),
+  "plus en attente");
+
+// Cloisonnement : l'invitation n'est pas lisible par un employé
+await setUser(empId);
+const visibleInvitations = await q(`select count(*)::int as n from public.invitations`);
+check("Un employé ne voit aucune invitation", visibleInvitations[0].n === 0);
+
+// =============================================================================
+console.log("\n=== 6. Scénario métier complet ===");
 await setUser(empId);
 
 console.log("\n  -- Pointage --");
@@ -428,7 +490,7 @@ check("Annulation d'une demande en attente libère la réservation",
   `disponible ${balReleased.available_days} j`);
 
 // =============================================================================
-console.log("\n=== 6. Journal des mouvements ===");
+console.log("\n=== 7. Journal des mouvements ===");
 await asOwner(async () => {
   const ledger = await q(
     `select movement, amount, note from public.leave_ledger

@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export type ActionState = { error?: string; success?: string } | null;
+export type ActionState = {
+  error?: string;
+  success?: string;
+  /** Lien d'activation à transmettre (invitations). */
+  link?: string;
+} | null;
 
 /** Convertit les messages d'erreur Supabase en français. */
 function traduire(message: string): string {

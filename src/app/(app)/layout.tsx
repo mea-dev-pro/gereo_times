@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { canManage, requireSession } from "@/lib/auth/session";
+import { canManage, isHrOrAdmin, requireSession } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth/actions";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ export default async function AppLayout({
   ];
   if (canManage(session.membership.role)) {
     items.push({ href: "/validations", label: "Validations" });
+  }
+  if (isHrOrAdmin(session.membership.role)) {
+    items.push({ href: "/equipe", label: "Équipe" });
   }
 
   return (

@@ -44,8 +44,10 @@ Puis, depuis Project Settings → Database → Connection string :
 ### 2. Appliquer les migrations
 
 ```bash
-npm run db:apply    # applique les migrations manquantes
-npm run db:check    # affiche l'état du schéma sans modifier
+npm run db:apply      # applique les migrations manquantes
+npm run db:check      # affiche l'état du schéma sans modifier
+npm run db:verify     # 56 contrôles hors ligne (PGlite), RLS réellement appliquée
+npm run db:clean-test # purge des données de recette (simulation par défaut)
 ```
 
 Le suivi est assuré par la table `public.schema_migrations` : chaque fichier
@@ -73,6 +75,7 @@ supabase/migrations/
   0001_schema.sql           16 tables, contraintes, index, vue des soldes
   0002_rls.sql              helpers + policies RLS + garde-fous
   0003_business_logic.sql   RPC transactionnelles métier
+  0004_invitations.sql      invitations de collaborateurs
 
 src/
   app/
@@ -139,20 +142,24 @@ pages publiques ont été vérifiées dans un navigateur.
 
 ## Périmètre
 
-**Livré (MVP, sprints 1 à 3 du PRD)**
+**Livré**
 
 - authentification, création d'organisation, rôles
 - pointage entrée/sortie, pauses, historique, corrections justifiées
 - demandes de congés, validation, refus motivé, annulation avec restitution
 - soldes de congés reconstruits depuis le journal des mouvements
 - tableau de bord et écran de validations manager
+- **invitations de collaborateurs** : lien d'activation sans mot de passe,
+  acceptation automatique à la première connexion, révocation
+- **gestion de l'équipe** : rôles, rattachement hiérarchique, désactivation
 
 **À venir (phase 2, sprints 4 à 6)**
 
-- calendrier d'équipe, tableaux de bord RH et exports
-- notifications par email (Resend)
-- administration RH complète (horaires, politiques, circuits de validation)
-- invitations de collaborateurs
+- calendrier d'équipe (vues mensuelle et hebdomadaire des disponibilités)
+- tableaux de bord RH agrégés et exports
+- notifications internes et par email (Resend)
+- administration RH complète (horaires, jours fériés, types de congés,
+  politiques, circuits de validation multi-niveaux)
 - tests Playwright, déploiement Vercel
 
 ---

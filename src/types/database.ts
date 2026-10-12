@@ -32,6 +32,7 @@ export type LedgerMovement =
   | "consumption"
   | "restitution";
 export type AccrualFrequency = "none" | "monthly" | "quarterly" | "yearly";
+export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
 
 // --- Définition d'une table ---------------------------------------------------
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
@@ -281,6 +282,23 @@ export type Database = {
         user_agent: string | null;
         created_at: string;
       }>;
+
+      invitations: TableDef<{
+        id: string;
+        organization_id: string;
+        email: string;
+        role: OrgRole;
+        department_id: string | null;
+        manager_id: string | null;
+        job_title: string | null;
+        hire_date: string | null;
+        status: InvitationStatus;
+        invited_by: string | null;
+        expires_at: string;
+        accepted_at: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
     };
 
     Views: {
@@ -400,6 +418,26 @@ export type Database = {
         };
         Returns: number;
       };
+      invite_member: {
+        Args: {
+          p_organization_id: string;
+          p_email: string;
+          p_role?: OrgRole;
+          p_department_id?: string | null;
+          p_manager_id?: string | null;
+          p_job_title?: string | null;
+          p_hire_date?: string | null;
+        };
+        Returns: string;
+      };
+      accept_pending_invitation: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      revoke_invitation: {
+        Args: { p_invitation_id: string };
+        Returns: undefined;
+      };
     };
 
     Enums: {
@@ -414,6 +452,7 @@ export type Database = {
       half_day: HalfDay;
       ledger_movement: LedgerMovement;
       accrual_frequency: AccrualFrequency;
+      invitation_status: InvitationStatus;
     };
 
     CompositeTypes: Record<never, never>;

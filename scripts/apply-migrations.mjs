@@ -140,10 +140,13 @@ const functions = await client.query(`
       'submit_leave_request','decide_leave_request','cancel_leave_request',
       'accrue_leave','adjust_leave_balance','compute_leave_days',
       'is_working_day','leave_available_days','request_time_adjustment',
-      'decide_time_adjustment','recalc_time_entry'
+      'decide_time_adjustment','recalc_time_entry',
+      'invite_member','accept_pending_invitation','revoke_invitation'
     )
   order by 1
 `);
+
+const EXPECTED_FUNCTIONS = 19;
 
 const views = await client.query(`
   select table_name from information_schema.views
@@ -151,12 +154,12 @@ const views = await client.query(`
 `);
 
 console.log("  ÉTAT DU SCHÉMA");
-console.log(`    Tables        : ${tables.rowCount}`);
+console.log(`    Tables        : ${tables.rowCount} (dont schema_migrations, interne)`);
 console.log(`    Vues          : ${views.rows.map((r) => r.table_name).join(", ") || "aucune"}`);
-console.log(`    Tables RLS    : ${policies.rowCount}/16`);
+console.log(`    Tables RLS    : ${policies.rowCount} protégées`);
 console.log(
-  `    Fonctions     : ${functions.rowCount}/16 ` +
-    `${functions.rowCount < 16 ? "⚠ incomplet" : "✓"}`
+  `    Fonctions     : ${functions.rowCount}/${EXPECTED_FUNCTIONS} ` +
+    `${functions.rowCount < EXPECTED_FUNCTIONS ? "⚠ incomplet" : "✓"}`
 );
 console.log(
   `    Tables sans RLS : ${noRls.rowCount === 0 ? "aucune ✓" : noRls.rows.map((r) => r.relname).join(", ") + " ⚠"}\n`
