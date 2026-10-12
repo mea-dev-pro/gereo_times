@@ -81,7 +81,10 @@ supabase/migrations/
 
 src/
   app/
-    (app)/                  zone authentifiée (tableau de bord, pointage, congés, validations)
+    (app)/                  zone authentifiée (tableau de bord, pointage, congés,
+                            calendrier, validations, équipe, rapports, paramètres)
+    api/export/[kind]/      exports CSV (présence, congés, soldes)
+    auth/confirmer/         point d'arrivée des liens d'activation
     connexion/  inscription/  organisation/nouvelle/
   lib/
     supabase/               clients navigateur / serveur / admin, rafraîchissement de session
@@ -159,10 +162,12 @@ pages publiques ont été vérifiées dans un navigateur.
   calendriers de travail — chaque modification journalisée automatiquement
 - **calendrier d'équipe** : vues mensuelle et hebdomadaire des disponibilités,
   exposant les absences approuvées **sans jamais les motifs**
+- **rapports RH** : indicateurs agrégés filtrables par période (effectif, temps
+  effectif, écarts, congés par type, anomalies) et **exports CSV** de la
+  présence, des congés et des soldes
 
 **À venir (phase 2, sprints 4 à 6)**
 
-- tableaux de bord RH agrégés et exports
 - notifications internes et par email (Resend)
 - tests Playwright, déploiement Vercel
 
