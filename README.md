@@ -51,8 +51,9 @@ Pour les notifications par email (facultatif) :
 ```bash
 npm run db:apply      # applique les migrations manquantes
 npm run db:check      # affiche l'état du schéma sans modifier
-npm run db:verify     # 56 contrôles hors ligne (PGlite), RLS réellement appliquée
+npm run db:verify     # 65 contrôles hors ligne (PGlite), RLS réellement appliquée
 npm run db:clean-test # purge des données de recette (simulation par défaut)
+npm run e2e           # suite Playwright (nécessite npm run e2e:auth au préalable)
 ```
 
 Le suivi est assuré par la table `public.schema_migrations` : chaque fichier
@@ -70,6 +71,31 @@ Ouvrir http://localhost:3000 — vous serez redirigé vers `/connexion`.
 Créez un compte via `/inscription` : votre organisation, un calendrier de
 travail standard, cinq types de congés, leurs politiques et les jours fériés
 sont créés automatiquement.
+
+### 4. Tests de bout en bout
+
+```bash
+E2E_ADMIN_PASSWORD='…' E2E_EMPLOYE_PASSWORD='…' npm run e2e:auth
+npm run e2e
+```
+
+Les sessions sont obtenues par l'API d'authentification puis injectées en
+cookies — aucun mot de passe n'est saisi dans un formulaire. Les fichiers
+produits vivent dans `tests/.auth/`, exclu du dépôt.
+
+La suite couvre **23 scénarios** : protection des routes, cloisonnement des
+écrans RH, cycle de pointage, estimation des jours ouvrés, confidentialité des
+motifs dans le calendrier, contrôle d'accès des exports et téléchargement des
+trois CSV.
+
+> Lancez-la contre un **build de production** (`npm run build && npm run start`)
+> plutôt qu'en mode développement : chaque page se compile à la première visite
+> en dev, ce qui allonge considérablement l'exécution.
+
+### Déploiement
+
+Voir [`DEPLOIEMENT.md`](./DEPLOIEMENT.md) — préparation Supabase, variables
+d'environnement, migrations et vérifications après mise en ligne.
 
 ---
 

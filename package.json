@@ -10,7 +10,9 @@
     "db:apply": "node scripts/apply-migrations.mjs",
     "db:check": "node scripts/apply-migrations.mjs --check",
     "db:verify": "node scripts/verify-migrations.mjs",
-    "db:clean-test": "node scripts/clean-test-data.mjs"
+    "db:clean-test": "node scripts/clean-test-data.mjs",
+    "e2e:auth": "node scripts/e2e-auth.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.9",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",

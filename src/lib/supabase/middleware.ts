@@ -46,6 +46,16 @@ export async function updateSession(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   if (!user && !isPublic) {
+    // Les routes d'API répondent en JSON avec un code, pas par une redirection
+    // HTML : un client qui demande un export doit recevoir 401, pas la page de
+    // connexion.
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json(
+        { error: "Authentification requise." },
+        { status: 401 }
+      );
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/connexion";
     url.searchParams.set("suivant", pathname);

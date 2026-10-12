@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { formatMinutes, ROLE_LABELS } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Rapports RH" };
@@ -242,20 +242,23 @@ export default async function RapportsPage({
           </form>
 
           <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-            <a href={`/api/export/presence?${exportQuery}`}>
-              <Button variant="outline" size="sm">
-                Export présence (CSV)
-              </Button>
+            <a
+              href={`/api/export/presence?${exportQuery}`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Export présence (CSV)
             </a>
-            <a href={`/api/export/conges?${exportQuery}`}>
-              <Button variant="outline" size="sm">
-                Export congés (CSV)
-              </Button>
+            <a
+              href={`/api/export/conges?${exportQuery}`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Export congés (CSV)
             </a>
-            <a href="/api/export/soldes">
-              <Button variant="outline" size="sm">
-                Export soldes (CSV)
-              </Button>
+            <a
+              href="/api/export/soldes"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Export soldes (CSV)
             </a>
           </div>
         </CardContent>
