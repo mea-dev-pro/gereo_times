@@ -74,10 +74,10 @@ export default async function PointagePage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-content">
           Pointage
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-content-muted">
           {formatMinutes(totalMonth)} cumulées ce mois-ci
         </p>
       </header>
@@ -116,7 +116,7 @@ export default async function PointagePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
                     <th className="py-2 pr-3 font-medium">Date</th>
                     <th className="py-2 pr-3 font-medium">Arrivée</th>
                     <th className="py-2 pr-3 font-medium">Sortie</th>
@@ -130,21 +130,21 @@ export default async function PointagePage() {
                   {(entries ?? []).map((e) => (
                     <tr
                       key={e.id}
-                      className="border-b border-slate-100 last:border-0"
+                      className="border-b border-border last:border-0"
                     >
-                      <td className="py-2 pr-3 text-slate-700">
+                      <td className="py-2 pr-3 text-content">
                         {new Date(e.work_date + "T00:00:00").toLocaleDateString(
                           "fr-FR",
                           { weekday: "short", day: "2-digit", month: "2-digit" }
                         )}
                       </td>
-                      <td className="py-2 pr-3 text-slate-700">
+                      <td className="py-2 pr-3 text-content">
                         {new Date(e.clock_in).toLocaleTimeString("fr-FR", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </td>
-                      <td className="py-2 pr-3 text-slate-700">
+                      <td className="py-2 pr-3 text-content">
                         {e.clock_out
                           ? new Date(e.clock_out).toLocaleTimeString("fr-FR", {
                               hour: "2-digit",
@@ -152,10 +152,10 @@ export default async function PointagePage() {
                             })
                           : "—"}
                       </td>
-                      <td className="py-2 pr-3 text-slate-500">
+                      <td className="py-2 pr-3 text-content-muted">
                         {e.break_minutes > 0 ? `${e.break_minutes} min` : "—"}
                       </td>
-                      <td className="py-2 pr-3 font-medium text-slate-900">
+                      <td className="py-2 pr-3 font-medium text-content">
                         {formatMinutes(e.effective_minutes)}
                       </td>
                       <td className="py-2 pr-3">
@@ -210,18 +210,18 @@ export default async function PointagePage() {
               (adjustments ?? []).map((a) => (
                 <div
                   key={a.id}
-                  className="border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                  className="border-b border-border pb-3 last:border-0 last:pb-0"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-slate-700">
+                      <p className="truncate text-sm text-content">
                         {a.reason}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-content-muted">
                         demandée le {formatDate(a.created_at.slice(0, 10))}
                       </p>
                       {a.decision_comment && (
-                        <p className="mt-1 text-xs italic text-slate-500">
+                        <p className="mt-1 text-xs italic text-content-muted">
                           Réponse : {a.decision_comment}
                         </p>
                       )}

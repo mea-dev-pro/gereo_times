@@ -1,11 +1,79 @@
 @import "tailwindcss";
 
+/* Thème sombre piloté par une classe sur <html>, posée avant peinture par un
+   script en ligne (voir src/app/layout.tsx). Évite tout clignotement. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Tokens sémantiques.
+
+   Les valeurs sont mesurées sur la maquette de référence, puis ajustées quand
+   le contraste WCAG l'exige. Le violet de la référence (#8B5CF6) ne tient pas
+   le seuil AA avec du texte blanc (4,23:1) : il sert donc d'identité, et
+   #7C3AED (5,70:1) porte les éléments textuels.
+--------------------------------------------------------------------------- */
 :root {
   --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --border: #e2e8f0;
+  --surface-muted: #f8f9fb;
+  --surface-raised: #ffffff;
+  --border: #e3e4e8;
+  --border-strong: #cbd0d8;
   --text: #0f172a;
   --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+
+  /* Identité : pastilles, soulignements, accents décoratifs */
+  --brand: #8b5cf6;
+  /* Interactif : boutons et liens, contraste AA vérifié */
+  --brand-strong: #7c3aed;
+  --brand-soft: #ede9fe;
+
+  --ring: #7c3aed;
+}
+
+.dark {
+  --surface: #16181d;
+  --surface-muted: #0f1115;
+  --surface-raised: #1c1f27;
+  --border: #272b34;
+  --border-strong: #3a4049;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-subtle: #7b8494;
+
+  --brand: #a78bfa;
+  --brand-strong: #a78bfa;
+  --brand-soft: #2a2143;
+
+  --ring: #a78bfa;
+}
+
+/* `inline` : les utilitaires référencent la variable à l'exécution, ce qui
+   permet la bascule clair/sombre sans reconstruire la feuille. */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-content: var(--text);
+  --color-content-muted: var(--text-muted);
+  --color-content-subtle: var(--text-subtle);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+
+  /* Le layout fournit --font-geist-sans ; sans cette ligne, `var(--font-sans)`
+     retombait sur la pile système de Tailwind et Geist n'était jamais rendue. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-card: 1rem;
+  --radius-tile: 0.75rem;
+  --radius-control: 0.5rem;
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(16 24 40 / 0.06), 0 12px 32px rgb(16 24 40 / 0.1);
 }
 
 html,
@@ -16,14 +84,32 @@ body {
 body {
   background-color: var(--surface-muted);
   color: var(--text);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
 /* Anneau de focus homogène et visible au clavier (WCAG 2.2 AA) */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Les navigateurs peignent en blanc les champs et listes natives : sans cela,
+   le thème sombre laisse des zones éblouissantes. */
+.dark input,
+.dark select,
+.dark textarea {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media print {

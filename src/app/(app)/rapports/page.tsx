@@ -187,10 +187,10 @@ export default async function RapportsPage({
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-content">
             Rapports RH
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-content-muted">
             Indicateurs agrégés du {from.split("-").reverse().join("/")} au{" "}
             {to.split("-").reverse().join("/")}
           </p>
@@ -209,7 +209,7 @@ export default async function RapportsPage({
             <div>
               <label
                 htmlFor="from"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
+                className="mb-1.5 block text-sm font-medium text-content"
               >
                 Du
               </label>
@@ -218,13 +218,13 @@ export default async function RapportsPage({
                 name="from"
                 type="date"
                 defaultValue={from}
-                className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                className="h-10 rounded-lg border border-border-strong bg-surface px-3 text-sm"
               />
             </div>
             <div>
               <label
                 htmlFor="to"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
+                className="mb-1.5 block text-sm font-medium text-content"
               >
                 Au
               </label>
@@ -233,7 +233,7 @@ export default async function RapportsPage({
                 name="to"
                 type="date"
                 defaultValue={to}
-                className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                className="h-10 rounded-lg border border-border-strong bg-surface px-3 text-sm"
               />
             </div>
             <Button type="submit" variant="outline">
@@ -241,7 +241,7 @@ export default async function RapportsPage({
             </Button>
           </form>
 
-          <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
             <a
               href={`/api/export/presence?${exportQuery}`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -268,13 +268,13 @@ export default async function RapportsPage({
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardContent>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
                 {k.label}
               </p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">
+              <p className="mt-1 text-2xl font-semibold text-content">
                 {k.value}
               </p>
-              <p className="mt-1 text-xs text-slate-500">{k.hint}</p>
+              <p className="mt-1 text-xs text-content-muted">{k.hint}</p>
             </CardContent>
           </Card>
         ))}
@@ -297,12 +297,12 @@ export default async function RapportsPage({
                   return (
                     <div key={t.id}>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="text-slate-700">{t.name}</span>
-                        <span className="font-medium text-slate-900">
+                        <span className="text-content">{t.name}</span>
+                        <span className="font-medium text-content">
                           {days.toFixed(1).replace(".", ",")} j
                         </span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-2 overflow-hidden rounded-full bg-surface-muted">
                         <div
                           className="h-full rounded-full"
                           style={{
@@ -332,7 +332,7 @@ export default async function RapportsPage({
                 description="Les pointages de la période sont cohérents."
               />
             ) : (
-              <p className="text-sm text-slate-700">
+              <p className="text-sm text-content">
                 {anomalies.length} session(s) à examiner sur {sessionCount}.
               </p>
             )}
@@ -354,7 +354,7 @@ export default async function RapportsPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
                     <th className="py-2 pr-3 font-medium">Collaborateur</th>
                     <th className="py-2 pr-3 font-medium">Rôle</th>
                     <th className="py-2 pr-3 font-medium">Heures</th>
@@ -370,21 +370,21 @@ export default async function RapportsPage({
                     return (
                       <tr
                         key={m.id}
-                        className="border-b border-slate-100 last:border-0"
+                        className="border-b border-border last:border-0"
                       >
                         <td className="py-2.5 pr-3">
-                          <p className="font-medium text-slate-800">
+                          <p className="font-medium text-content">
                             {p?.full_name ?? nameOf(m.id)}
                           </p>
-                          <p className="text-xs text-slate-500">{p?.email}</p>
+                          <p className="text-xs text-content-muted">{p?.email}</p>
                         </td>
-                        <td className="py-2.5 pr-3 text-slate-600">
+                        <td className="py-2.5 pr-3 text-content-muted">
                           {ROLE_LABELS[m.role] ?? m.role}
                         </td>
-                        <td className="py-2.5 pr-3 font-medium text-slate-900">
+                        <td className="py-2.5 pr-3 font-medium text-content">
                           {formatMinutes(minutesByMember.get(m.id) ?? 0)}
                         </td>
-                        <td className="py-2.5 pr-3 text-slate-600">
+                        <td className="py-2.5 pr-3 text-content-muted">
                           {(daysByMember.get(m.id) ?? 0)
                             .toFixed(1)
                             .replace(".", ",")}{" "}
@@ -408,10 +408,10 @@ export default async function RapportsPage({
         </CardContent>
       </Card>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-content-subtle">
         Les exports quittent l&apos;application au format CSV, séparateur
         point-virgule et encodage UTF-8 avec BOM — ouverture directe dans Excel.{" "}
-        <Link href="/validations" className="text-blue-600 hover:underline">
+        <Link href="/validations" className="text-brand-strong hover:underline">
           Voir les demandes en attente
         </Link>
       </p>

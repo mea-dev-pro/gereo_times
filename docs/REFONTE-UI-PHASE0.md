@@ -363,3 +363,89 @@ modification du code. Les voici, avec ma recommandation.
 
 6. **Le rail d'icônes** est écarté (icônes d'applications tierces, section 2.4).
    Confirmez-vous qu'il ne faut pas le reproduire ?
+
+---
+
+## 10. Décisions validées — 13 octobre 2026
+
+| # | Question | Décision |
+| --- | --- | --- |
+| 1 | Niveau de fidélité | Palette et composants de la référence, mise en page adaptée aux contraintes métier |
+| 2 | Thème | **Clair ET sombre** — retenu contre ma recommandation, qui proposait le clair seul |
+| 3 | Accent | Violet `#8B5CF6`, comme la référence |
+| 4 | Écrans sans référence | Conçus par l'assistant dans le même langage, validation avant implémentation |
+| 5 | Recherche globale | Filtrage local sur les listes existantes |
+| 6 | Rail d'icônes | Écarté — icônes d'applications tierces |
+
+### Conséquence de la décision n° 2
+
+Le thème sombre n'était pas dans la référence visuelle : ses valeurs sont donc
+**déduites**, pas mesurées. Elles sont documentées ci-dessous et vérifiées par
+calcul, mais elles restent une proposition à valider à l'œil.
+
+### Le violet de la référence n'était pas utilisable tel quel
+
+Vérification par calcul, avant d'écrire la moindre ligne :
+
+| Paire | Ratio | Verdict |
+| --- | --- | --- |
+| blanc sur `#8B5CF6` (la référence) | 4,23:1 | **insuffisant** pour du texte courant |
+| blanc sur `#7C3AED` | 5,70:1 | AA |
+| blanc sur `#6D28D9` | 7,10:1 | AAA |
+| `#8B5CF6` sur fond sombre `#16181D` | 4,19:1 | **insuffisant** |
+| `#A78BFA` sur fond sombre `#16181D` | 6,53:1 | AA |
+| ambre `#A16207` sur tuile ambre | 4,42:1 | **insuffisant**, remplacé par `#854D0E` (6,15:1) |
+
+Un bouton blanc sur le violet exact de la maquette aurait été sous le seuil.
+D'où deux variables distinctes : `--brand` (`#8B5CF6`) pour l'identité, et
+`--brand-strong` (`#7C3AED`) pour tout élément portant du texte.
+
+---
+
+## 11. Sprint 1 — fondations (livré)
+
+- **Tokens sémantiques** dans `globals.css`, en clair et en sombre, avec
+  `@theme inline` pour que la bascule ne reconstruise pas la feuille.
+- **Thème sombre** à trois états (clair / sombre / système), posé avant peinture
+  par un script en ligne — aucun clignotement au chargement. Aucune dépendance
+  ajoutée.
+- **Navigation groupée** (« Mon espace », « Management », « Administration »),
+  icônes `lucide-react`, entrée active en pastille blanche bordée. Les groupes
+  sont filtrés par rôle, sans que cela vaille protection — chaque page
+  revérifie côté serveur.
+- **Composants créés** : `StatCard` (5 teintes sémantiques), `StatusBadge`,
+  `EmptyState`, `Skeleton`, `PageHeader`, `ThemeToggle`.
+- **Migration des couleurs** sur 24 fichiers, 234 classes figées remplacées par
+  les tokens.
+
+### Deux défauts trouvés en chemin
+
+**La police Geist n'était jamais appliquée.** `globals.css` demandait
+`var(--font-sans)`, le layout fournissait `--font-geist-sans` : la variable
+n'existait pas et Tailwind retombait sur sa pile système. L'application
+s'affichait donc dans la police du système depuis le début, sans que rien ne le
+signale. Corrigé.
+
+**Un codemod silencieusement faux.** La première version appariait les
+guillemets pour isoler les chaînes de caractères. Un commentaire contenant
+« d'arrivée » et « d'un » désappariait tout ce qui suit : le fichier
+`auth/confirmer/page.tsx` a été ignoré sans erreur. Réécrit pour analyser les
+jetons indépendamment des guillemets ; il ne restait alors que ce fichier, ce
+qui a confirmé que les 23 autres avaient bien été traités en entier.
+
+Leçon : un codemod sans contrôle ne dit pas ce qu'il n'a pas fait. La
+vérification systématique du reliquat est ce qui a révélé le problème.
+
+### Vérifications
+
+- Build de production vert, 16 routes
+- **25 tests de bout en bout**, 0 échec, dont 2 nouveaux sur le thème
+- 65 contrôles de base inchangés
+- Contrastes calculés sur les couleurs réellement appliquées, dans les deux
+  thèmes, avec un seuil AA vérifié à l'exécution
+
+### Reste à faire
+
+Sprints 2 à 4 du plan initial : parcours employé, parcours manager et RH,
+finition. Les pages héritent déjà des tokens, mais leur mise en page n'est pas
+encore revue écran par écran.

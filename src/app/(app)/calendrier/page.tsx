@@ -105,16 +105,16 @@ export default async function CalendrierPage({
 
   const switcher = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
+      <div className="flex rounded-control bg-surface-muted p-0.5 ring-1 ring-border dark:bg-white/5">
         {(["mois", "semaine"] as const).map((v) => (
           <Link
             key={v}
             href={`/calendrier?vue=${v}&date=${weekParam}`}
             className={cn(
-              "rounded-md px-3 py-1 text-sm font-medium capitalize",
+              "rounded-[6px] px-3 py-1 text-sm font-medium capitalize transition-colors",
               vue === v
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-surface text-brand-strong shadow-sm dark:bg-white/15"
+                : "text-content-muted hover:text-content"
             )}
           >
             {v}
@@ -124,20 +124,20 @@ export default async function CalendrierPage({
       <div className="flex items-center gap-1">
         <Link
           href={`/calendrier?vue=${vue}&date=${iso(prev)}`}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
+          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-content-muted hover:text-content"
           aria-label="Période précédente"
         >
           ←
         </Link>
         <Link
           href={`/calendrier?vue=${vue}&date=${todayISO}`}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
+          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-content-muted hover:text-content"
         >
           Aujourd&apos;hui
         </Link>
         <Link
           href={`/calendrier?vue=${vue}&date=${iso(next)}`}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
+          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-content-muted hover:text-content"
           aria-label="Période suivante"
         >
           →
@@ -150,10 +150,10 @@ export default async function CalendrierPage({
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-content">
             Calendrier d&apos;équipe
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-content-muted">
             {title} · {absences?.length ?? 0} absence(s) approuvée(s)
           </p>
         </div>
@@ -180,7 +180,7 @@ export default async function CalendrierPage({
                 {DAY_NAMES.map((d) => (
                   <div
                     key={d}
-                    className="pb-1 text-center text-xs font-medium uppercase tracking-wide text-slate-400"
+                    className="pb-1 text-center text-xs font-medium uppercase tracking-wide text-content-subtle"
                   >
                     {d}
                   </div>
@@ -199,7 +199,7 @@ export default async function CalendrierPage({
                         "min-h-20 rounded-lg border p-1.5",
                         key === todayISO
                           ? "border-blue-400 bg-blue-50"
-                          : "border-slate-200",
+                          : "border-border",
                         !inMonth && "opacity-40"
                       )}
                     >
@@ -208,7 +208,7 @@ export default async function CalendrierPage({
                           "mb-1 text-xs",
                           key === todayISO
                             ? "font-semibold text-blue-700"
-                            : "text-slate-400"
+                            : "text-content-subtle"
                         )}
                       >
                         {day.getUTCDate()}
@@ -228,7 +228,7 @@ export default async function CalendrierPage({
                           </div>
                         ))}
                         {dayAbsences.length > 3 && (
-                          <p className="px-1 text-[11px] text-slate-400">
+                          <p className="px-1 text-[11px] text-content-subtle">
                             +{dayAbsences.length - 3}
                           </p>
                         )}
@@ -242,7 +242,7 @@ export default async function CalendrierPage({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[36rem] text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400">
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-content-subtle">
                     <th className="py-2 pr-3 text-left font-medium">
                       Collaborateur
                     </th>
@@ -251,7 +251,7 @@ export default async function CalendrierPage({
                       return (
                         <th key={i} className="px-1 py-2 text-center font-medium">
                           {DAY_NAMES[i]}
-                          <span className="ml-1 font-normal text-slate-300">
+                          <span className="ml-1 font-normal text-content-subtle">
                             {d.getUTCDate()}
                           </span>
                         </th>
@@ -269,9 +269,9 @@ export default async function CalendrierPage({
                     return (
                       <tr
                         key={memberId}
-                        className="border-b border-slate-100 last:border-0"
+                        className="border-b border-border last:border-0"
                       >
-                        <td className="py-2 pr-3 font-medium text-slate-800">
+                        <td className="py-2 pr-3 font-medium text-content">
                           {mine[0].member_name}
                         </td>
                         {Array.from({ length: 7 }, (_, i) => {
@@ -292,7 +292,7 @@ export default async function CalendrierPage({
                                   }`}
                                 />
                               ) : (
-                                <span className="inline-block h-5 w-full rounded bg-slate-100" />
+                                <span className="inline-block h-5 w-full rounded bg-surface-muted" />
                               )}
                             </td>
                           );
@@ -314,7 +314,7 @@ export default async function CalendrierPage({
             <CardDescription>Type et durée, sans motif</CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-border">
               {(absences ?? []).map((a, i) => (
                 <li
                   key={`${a.member_id}-${a.start_date}-${i}`}
@@ -325,15 +325,15 @@ export default async function CalendrierPage({
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: a.leave_type_color }}
                     />
-                    <span className="text-sm font-medium text-slate-800">
+                    <span className="text-sm font-medium text-content">
                       {a.member_name}
                     </span>
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-content-muted">
                       {a.leave_type_name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-content-muted">
                       {formatDate(a.start_date)} → {formatDate(a.end_date)}
                     </span>
                     <Badge tone="neutral">

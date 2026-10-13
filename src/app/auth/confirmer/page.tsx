@@ -114,8 +114,8 @@ export default function ConfirmerPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm text-center">
-        <span className="text-2xl font-semibold tracking-tight text-slate-900">
-          Gereo<span className="text-blue-600">Times</span>
+        <span className="text-2xl font-semibold tracking-tight text-content">
+          Gereo<span className="text-brand-strong">Times</span>
         </span>
 
         <div className="mt-6">
@@ -124,16 +124,16 @@ export default function ConfirmerPage() {
               {error}
             </Alert>
           ) : (
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-slate-600">
+            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+              <p className="text-sm text-content-muted">
                 Activation de votre accès en cours…
               </p>
               <div
-                className="mx-auto mt-4 h-1.5 w-32 overflow-hidden rounded-full bg-slate-100"
+                className="mx-auto mt-4 h-1.5 w-32 overflow-hidden rounded-full bg-surface-muted"
                 role="status"
                 aria-label="Traitement en cours"
               >
-                <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-600" />
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-brand-strong" />
               </div>
             </div>
           )}

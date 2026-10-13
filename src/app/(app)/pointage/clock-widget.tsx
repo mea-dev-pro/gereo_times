@@ -65,10 +65,10 @@ export function ClockWidget({
       </div>
 
       {isOpen && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="mb-2 text-sm text-slate-600">
+        <div className="rounded-lg border border-border bg-surface-muted p-4">
+          <p className="mb-2 text-sm text-content-muted">
             Session ouverte depuis{" "}
-            <strong className="text-slate-900">
+            <strong className="text-content">
               {clockedInAt
                 ? new Date(clockedInAt).toLocaleTimeString("fr-FR", {
                     hour: "2-digit",

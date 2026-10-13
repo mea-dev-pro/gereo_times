@@ -56,10 +56,10 @@ export default async function NotificationsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-content">
             Notifications
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-content-muted">
             {unread > 0
               ? `${unread} non lue(s) sur ${list.length}`
               : `${list.length} notification(s), toutes lues`}
@@ -104,13 +104,13 @@ export default async function NotificationsPage() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-1.5 text-sm font-medium text-slate-800">
+                  <p className="mt-1.5 text-sm font-medium text-content">
                     {n.title}
                   </p>
                   {n.body && (
-                    <p className="mt-0.5 text-sm text-slate-600">{n.body}</p>
+                    <p className="mt-0.5 text-sm text-content-muted">{n.body}</p>
                   )}
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-content-subtle">
                     {formatDateTime(n.created_at)}
                   </p>
                 </div>
@@ -121,7 +121,7 @@ export default async function NotificationsPage() {
                   n.link && (
                     <Link
                       href={n.link}
-                      className="shrink-0 text-xs font-medium text-slate-500 hover:text-slate-900 hover:underline"
+                      className="shrink-0 text-xs font-medium text-content-muted hover:text-content hover:underline"
                     >
                       Ouvrir
                     </Link>

@@ -20,11 +20,11 @@ function ActivationLink({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
-    <div className="mt-3 rounded-lg border border-emerald-200 bg-white p-3">
+    <div className="mt-3 rounded-lg border border-emerald-200 bg-surface p-3">
       <p className="mb-2 text-xs font-medium text-emerald-800">
         Lien d&apos;activation à transmettre au collaborateur
       </p>
-      <code className="block max-h-24 overflow-auto break-all rounded bg-slate-50 p-2 text-xs text-slate-700">
+      <code className="block max-h-24 overflow-auto break-all rounded bg-surface-muted p-2 text-xs text-content">
         {url}
       </code>
       <Button
@@ -43,7 +43,7 @@ function ActivationLink({ url }: { url: string }) {
       >
         {copied ? "Copié" : "Copier le lien"}
       </Button>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-content-muted">
         Aucun mot de passe ne transite : le collaborateur définit le sien en
         ouvrant ce lien.
       </p>

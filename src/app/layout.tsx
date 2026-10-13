@@ -21,13 +21,24 @@ export const metadata: Metadata = {
     "Gestion du temps de travail, des congés et des validations managériales.",
 };
 
+/**
+ * Posé dans <head> et exécuté avant la peinture : choisit le thème sans
+ * provoquer de clignotement clair→sombre au chargement.
+ * `system` est le défaut quand rien n'a été choisi explicitement.
+ */
+const THEME_SCRIPT = `try{var e=localStorage.getItem('theme');var d=e?e==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d)}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-50 text-slate-900">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body className="min-h-full bg-surface-muted text-content">{children}</body>
     </html>
   );
 }

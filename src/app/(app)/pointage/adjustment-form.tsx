@@ -30,7 +30,7 @@ export function AdjustmentForm({ entries }: { entries: AdjustableEntry[] }) {
 
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-content-muted">
         Aucun pointage clôturé à corriger pour le moment.
       </p>
     );
@@ -101,7 +101,7 @@ export function AdjustmentForm({ entries }: { entries: AdjustableEntry[] }) {
       <Button type="submit" variant="outline" disabled={pending}>
         {pending ? "Envoi…" : "Demander la correction"}
       </Button>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-content-muted">
         La correction doit être approuvée par votre manager. Un pointage clôturé
         ne peut pas être modifié directement.
       </p>

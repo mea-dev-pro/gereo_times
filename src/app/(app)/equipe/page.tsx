@@ -82,10 +82,10 @@ export default async function EquipePage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-content">
           Équipe
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-content-muted">
           {activeCount} membre(s) actif(s) · {invitations?.length ?? 0} invitation(s)
           en attente
         </p>
@@ -116,20 +116,20 @@ export default async function EquipePage() {
             {(invitations ?? []).map((inv) => (
               <div
                 key={inv.id}
-                className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                className="flex items-start justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-800">
+                  <p className="truncate text-sm font-medium text-content">
                     {inv.email}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-content-muted">
                     {ROLE_LABELS[inv.role]}
                     {inv.job_title ? ` · ${inv.job_title}` : ""}
                     {inv.manager_id
                       ? ` · responsable : ${nameOf(inv.manager_id) ?? "—"}`
                       : ""}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-content-subtle">
                     émise le {formatDate(inv.created_at.slice(0, 10))} · expire le{" "}
                     {formatDate(inv.expires_at.slice(0, 10))}
                   </p>
@@ -155,7 +155,7 @@ export default async function EquipePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
                     <th className="py-2 pr-3 font-medium">Collaborateur</th>
                     <th className="py-2 pr-3 font-medium">Poste</th>
                     <th className="py-2 pr-3 font-medium">Département</th>
@@ -171,26 +171,26 @@ export default async function EquipePage() {
                     return (
                       <tr
                         key={m.id}
-                        className="border-b border-slate-100 last:border-0"
+                        className="border-b border-border last:border-0"
                       >
                         <td className="py-2.5 pr-3">
-                          <p className="font-medium text-slate-800">
+                          <p className="font-medium text-content">
                             {p?.full_name ?? "—"}
                           </p>
-                          <p className="text-xs text-slate-500">{p?.email}</p>
+                          <p className="text-xs text-content-muted">{p?.email}</p>
                         </td>
-                        <td className="py-2.5 pr-3 text-slate-600">
+                        <td className="py-2.5 pr-3 text-content-muted">
                           {m.job_title ?? "—"}
                         </td>
-                        <td className="py-2.5 pr-3 text-slate-600">
+                        <td className="py-2.5 pr-3 text-content-muted">
                           {m.department_id
                             ? departmentById.get(m.department_id)?.name ?? "—"
                             : "—"}
                         </td>
-                        <td className="py-2.5 pr-3 text-slate-600">
+                        <td className="py-2.5 pr-3 text-content-muted">
                           {nameOf(m.manager_id) ?? "—"}
                         </td>
-                        <td className="py-2.5 pr-3 text-slate-500">
+                        <td className="py-2.5 pr-3 text-content-muted">
                           {formatDate(m.hire_date)}
                         </td>
                         <td className="py-2.5 pr-3">

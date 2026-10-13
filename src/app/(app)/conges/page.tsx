@@ -54,10 +54,10 @@ export default async function CongesPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-content">
           Mes congés
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-content-muted">
           Soldes, demandes et suivi des validations
         </p>
       </header>
@@ -81,20 +81,20 @@ export default async function CongesPage() {
               return (
                 <div
                   key={t.id}
-                  className="rounded-lg border border-slate-200 p-4"
+                  className="rounded-lg border border-border p-4"
                 >
                   <div className="flex items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: t.color }}
                     />
-                    <span className="truncate text-sm font-medium text-slate-800">
+                    <span className="truncate text-sm font-medium text-content">
                       {t.name}
                     </span>
                   </div>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  <p className="mt-2 text-2xl font-semibold text-content">
                     {available.toFixed(2).replace(".", ",")}
-                    <span className="ml-1 text-sm font-normal text-slate-500">
+                    <span className="ml-1 text-sm font-normal text-content-muted">
                       jour(s)
                     </span>
                   </p>
@@ -166,7 +166,7 @@ export default async function CongesPage() {
                 return (
                   <div
                     key={r.id}
-                    className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                    className="flex items-start justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -174,16 +174,16 @@ export default async function CongesPage() {
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: type?.color ?? "#94a3b8" }}
                         />
-                        <p className="truncate text-sm font-medium text-slate-800">
+                        <p className="truncate text-sm font-medium text-content">
                           {type?.name ?? "Congé"}
                         </p>
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-content-muted">
                         {formatDate(r.start_date)} → {formatDate(r.end_date)} ·{" "}
                         {Number(r.total_days).toFixed(2).replace(".", ",")} j
                       </p>
                       {r.reason && (
-                        <p className="mt-0.5 truncate text-xs italic text-slate-400">
+                        <p className="mt-0.5 truncate text-xs italic text-content-subtle">
                           {r.reason}
                         </p>
                       )}

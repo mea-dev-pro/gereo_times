@@ -148,9 +148,9 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-        <span className="text-sm text-slate-600">Jours ouvrés décomptés</span>
-        <span className="text-lg font-semibold text-slate-900">
+      <div className="flex items-center justify-between rounded-lg border border-border bg-surface-muted px-4 py-3">
+        <span className="text-sm text-content-muted">Jours ouvrés décomptés</span>
+        <span className="text-lg font-semibold text-content">
           {estimating
             ? "…"
             : days === null
@@ -158,7 +158,7 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
               : `${days.toFixed(2).replace(".", ",")} j`}
         </span>
       </div>
-      <p className="-mt-2 text-xs text-slate-500">
+      <p className="-mt-2 text-xs text-content-muted">
         Week-ends et jours fériés de votre organisation exclus.
       </p>
 

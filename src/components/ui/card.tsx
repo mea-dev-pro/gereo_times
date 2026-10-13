@@ -1,6 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Carte de contenu. Les couleurs passent par les tokens sémantiques, ce qui
+ * rend le thème sombre automatique — aucun `dark:` n'est nécessaire ici.
+ */
 export function Card({
   className,
   ...props
@@ -8,7 +12,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-slate-200 bg-white shadow-sm",
+        "rounded-card border border-border bg-surface shadow-card",
         className
       )}
       {...props}
@@ -22,7 +26,10 @@ export function CardHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("border-b border-slate-100 px-5 py-4", className)}
+      className={cn(
+        "flex items-start justify-between gap-3 border-b border-border px-5 py-4",
+        className
+      )}
       {...props}
     />
   );
@@ -34,7 +41,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-base font-semibold text-slate-900", className)}
+      className={cn("text-base font-semibold text-content", className)}
       {...props}
     />
   );
@@ -45,7 +52,10 @@ export function CardDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("mt-0.5 text-sm text-slate-500", className)} {...props} />
+    <p
+      className={cn("mt-0.5 text-sm text-content-muted", className)}
+      {...props}
+    />
   );
 }
 
@@ -63,7 +73,7 @@ export function CardFooter({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 border-t border-slate-100 px-5 py-3",
+        "flex items-center gap-2 border-t border-border px-5 py-3",
         className
       )}
       {...props}

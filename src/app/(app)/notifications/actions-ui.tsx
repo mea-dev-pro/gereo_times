@@ -21,7 +21,7 @@ export function MarkReadButton({ id, link }: { id: string; link?: string | null 
       {link && (
         <Link
           href={link}
-          className="text-xs font-medium text-blue-600 hover:underline"
+          className="text-xs font-medium text-brand-strong hover:underline"
           onClick={mark}
         >
           Ouvrir

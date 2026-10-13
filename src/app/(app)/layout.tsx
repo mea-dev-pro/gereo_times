@@ -2,7 +2,12 @@ import Link from "next/link";
 import { canManage, isHrOrAdmin, requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
-import { NavLinks, type NavItem } from "@/components/nav-links";
+import {
+  NavLinks,
+  type NavGroup,
+  type NavItem,
+} from "@/components/nav-links";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/utils";
 
@@ -24,49 +29,89 @@ export default async function AppLayout({
     .eq("member_id", session.membership.id)
     .is("read_at", null);
 
-  const items: NavItem[] = [
-    { href: "/", label: "Tableau de bord" },
-    { href: "/pointage", label: "Pointage" },
-    { href: "/conges", label: "Mes congés" },
-    { href: "/calendrier", label: "Calendrier" },
-    { href: "/notifications", label: "Notifications", badge: unreadCount ?? 0 },
+  // Groupes de navigation, filtrés par rôle.
+  // Masquer une entrée n'est PAS une protection : chaque page et chaque
+  // server action revérifie le rôle côté serveur.
+  const groups: NavGroup[] = [
+    {
+      title: "Mon espace",
+      items: [
+        { key: "dashboard", href: "/", label: "Tableau de bord" },
+        { key: "pointage", href: "/pointage", label: "Pointage" },
+        { key: "conges", href: "/conges", label: "Mes congés" },
+        { key: "calendrier", href: "/calendrier", label: "Calendrier" },
+        {
+          key: "notifications",
+          href: "/notifications",
+          label: "Notifications",
+          badge: unreadCount ?? 0,
+        },
+      ],
+    },
   ];
+
+  const management: NavItem[] = [];
   if (canManage(session.membership.role)) {
-    items.push({ href: "/validations", label: "Validations" });
+    management.push({
+      key: "validations",
+      href: "/validations",
+      label: "Validations",
+    });
   }
+  if (management.length > 0) {
+    groups.push({ title: "Management", items: management });
+  }
+
+  const administration: NavItem[] = [];
   if (isHrOrAdmin(session.membership.role)) {
-    items.push({ href: "/equipe", label: "Équipe" });
-    items.push({ href: "/rapports", label: "Rapports RH" });
-    items.push({ href: "/parametres", label: "Paramètres RH" });
+    administration.push({ key: "equipe", href: "/equipe", label: "Équipe" });
+    administration.push({
+      key: "rapports",
+      href: "/rapports",
+      label: "Rapports RH",
+    });
+    administration.push({
+      key: "parametres",
+      href: "/parametres",
+      label: "Paramètres RH",
+    });
+  }
+  if (administration.length > 0) {
+    groups.push({ title: "Administration", items: administration });
   }
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
-      <aside className="no-print border-b border-slate-200 bg-white lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="px-4 py-4">
+      <aside className="no-print border-b border-border bg-surface lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
+        <div className="px-5 pb-2 pt-4">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-slate-900"
+            className="text-lg font-semibold tracking-tight text-content"
           >
-            Gereo<span className="text-blue-600">Times</span>
+            Gereo<span className="text-brand-strong">Times</span>
           </Link>
-        </div>
-
-        <div className="px-3 pb-4">
-          <p className="mb-2 truncate px-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <p className="mt-1 truncate text-xs font-medium text-content-subtle">
             {session.organization.name}
           </p>
-          <NavLinks items={items} />
         </div>
 
-        <div className="border-t border-slate-100 px-4 py-4 lg:mt-auto">
-          <p className="truncate text-sm font-medium text-slate-900">
-            {session.profile.full_name ?? session.email}
-          </p>
-          <p className="text-xs text-slate-500">
-            {ROLE_LABELS[session.membership.role] ?? session.membership.role}
-          </p>
-          <form action={signOut} className="mt-3">
+        <NavLinks groups={groups} />
+
+        <div className="border-t border-border px-4 py-4 lg:mt-auto">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-content">
+                {session.profile.full_name ?? session.email}
+              </p>
+              <p className="text-xs text-content-muted">
+                {ROLE_LABELS[session.membership.role] ??
+                  session.membership.role}
+              </p>
+            </div>
+            <ThemeToggle />
+          </div>
+
+          <form action={signOut}>
             <Button type="submit" variant="outline" size="sm" className="w-full">
               Se déconnecter
             </Button>

@@ -96,10 +96,10 @@ export default async function ParametresPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-content">
           Paramètres RH
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-content-muted">
           Règles de temps de travail et de congés de {session.organization.name}
         </p>
       </header>
@@ -112,7 +112,7 @@ export default async function ParametresPage() {
           <a
             key={a.href}
             href={a.href}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900"
+            className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-content-muted hover:border-border-strong hover:text-content"
           >
             {a.label}
           </a>

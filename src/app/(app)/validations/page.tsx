@@ -72,10 +72,10 @@ export default async function ValidationsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-content">
           Validations
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-content-muted">
           Demandes de votre équipe en attente de décision
         </p>
       </header>
@@ -105,7 +105,7 @@ export default async function ValidationsPage() {
               return (
                 <div
                   key={r.id}
-                  className="rounded-lg border border-slate-200 p-4"
+                  className="rounded-lg border border-border p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -114,24 +114,24 @@ export default async function ValidationsPage() {
                           className="h-2.5 w-2.5 rounded-full"
                           style={{ backgroundColor: type?.color ?? "#94a3b8" }}
                         />
-                        <span className="font-medium text-slate-900">
+                        <span className="font-medium text-content">
                           {nameOf(r.member_id)}
                         </span>
-                        <span className="text-sm text-slate-500">
+                        <span className="text-sm text-content-muted">
                           · {type?.name ?? "Congé"}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 text-sm text-content-muted">
                         {formatDate(r.start_date)} → {formatDate(r.end_date)}
                         {r.start_half ? ` (début ${r.start_half})` : ""}
                         {r.end_half ? ` (fin ${r.end_half})` : ""}
                       </p>
                       {r.reason && (
-                        <p className="mt-1 text-sm italic text-slate-500">
+                        <p className="mt-1 text-sm italic text-content-muted">
                           « {r.reason} »
                         </p>
                       )}
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-content-subtle">
                         soumise le {formatDateTime(r.submitted_at)}
                       </p>
                     </div>
@@ -140,7 +140,7 @@ export default async function ValidationsPage() {
                     </Badge>
                   </div>
 
-                  <div className="mt-3 border-t border-slate-100 pt-3">
+                  <div className="mt-3 border-t border-border pt-3">
                     <DecisionPanel id={r.id} kind="leave" />
                   </div>
                 </div>
@@ -169,13 +169,13 @@ export default async function ValidationsPage() {
             <EmptyState title="Aucune correction en attente" />
           ) : (
             (adjustments ?? []).map((a) => (
-              <div key={a.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={a.id} className="rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium text-content">
                       {nameOf(a.member_id)}
                     </p>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-content-muted">
                       {a.original_in &&
                         new Date(a.original_in).toLocaleString("fr-FR")}
                       {" → "}
@@ -183,7 +183,7 @@ export default async function ValidationsPage() {
                         ? new Date(a.original_out).toLocaleString("fr-FR")
                         : "—"}
                     </p>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-content-muted">
                       Corrigé en :{" "}
                       <strong>
                         {a.new_in
@@ -197,13 +197,13 @@ export default async function ValidationsPage() {
                           : "—"}
                       </strong>
                     </p>
-                    <p className="mt-1 text-sm italic text-slate-500">
+                    <p className="mt-1 text-sm italic text-content-muted">
                       « {a.reason} »
                     </p>
                   </div>
                   <Badge tone="warning">En attente</Badge>
                 </div>
-                <div className="mt-3 border-t border-slate-100 pt-3">
+                <div className="mt-3 border-t border-border pt-3">
                   <DecisionPanel id={a.id} kind="adjustment" />
                 </div>
               </div>

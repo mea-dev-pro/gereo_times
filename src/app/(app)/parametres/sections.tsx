@@ -88,12 +88,12 @@ export function DepartmentSection({
           description="Structurez votre organisation en départements."
         />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border">
           {departments.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-3 py-2">
               <div>
-                <p className="text-sm font-medium text-slate-800">{d.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-medium text-content">{d.name}</p>
+                <p className="text-xs text-content-muted">
                   {d.code ? `${d.code} · ` : ""}
                   {memberCounts[d.id] ?? 0} membre(s)
                 </p>
@@ -107,7 +107,7 @@ export function DepartmentSection({
         </ul>
       )}
 
-      <form action={formAction} className="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
+      <form action={formAction} className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
         <div className="flex-1 min-w-40">
           <Label htmlFor="dept-name">Nom</Label>
           <Input id="dept-name" name="name" required placeholder="Production" />
@@ -143,12 +143,12 @@ export function HolidaySection({
       {holidays.length === 0 ? (
         <EmptyState title="Aucun jour férié" />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border">
           {holidays.map((h) => (
             <li key={h.id} className="flex items-center justify-between gap-3 py-2">
               <div>
-                <p className="text-sm font-medium text-slate-800">{h.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-medium text-content">{h.name}</p>
+                <p className="text-xs text-content-muted">
                   {formatDate(h.holiday_date)}
                   {h.is_recurring ? " · tous les ans" : ""}
                 </p>
@@ -159,7 +159,7 @@ export function HolidaySection({
         </ul>
       )}
 
-      <form action={formAction} className="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
+      <form action={formAction} className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
         <div className="flex-1 min-w-40">
           <Label htmlFor="hol-name">Nom</Label>
           <Input id="hol-name" name="name" required placeholder="Fête nationale" />
@@ -168,7 +168,7 @@ export function HolidaySection({
           <Label htmlFor="hol-date">Date</Label>
           <Input id="hol-date" name="holiday_date" type="date" required />
         </div>
-        <label className="flex items-center gap-2 pb-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 pb-2 text-sm text-content-muted">
           <input type="checkbox" name="is_recurring" className="h-4 w-4 rounded" />
           Chaque année
         </label>
@@ -199,7 +199,7 @@ export function LeaveTypeSection({
       {state?.error && <Alert variant="danger">{state.error}</Alert>}
       {state?.success && <Alert variant="success">{state.success}</Alert>}
 
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-border">
         {types.map((t) => (
           <li key={t.id} className="flex items-center justify-between gap-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
@@ -208,9 +208,9 @@ export function LeaveTypeSection({
                 style={{ backgroundColor: t.color }}
               />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-800">
+                <p className="text-sm font-medium text-content">
                   {t.name}{" "}
-                  <span className="font-mono text-xs text-slate-400">{t.code}</span>
+                  <span className="font-mono text-xs text-content-subtle">{t.code}</span>
                 </p>
                 <div className="mt-0.5 flex flex-wrap gap-1.5">
                   <Badge tone={t.is_paid ? "success" : "neutral"}>
@@ -234,14 +234,14 @@ export function LeaveTypeSection({
         ))}
       </ul>
 
-      <div className="border-t border-slate-100 pt-4">
+      <div className="border-t border-border pt-4">
         <Button variant="outline" size="sm" onClick={() => setOpen(!open)}>
           {open ? "Annuler" : "Ajouter un type de congé"}
         </Button>
       </div>
 
       {open && (
-        <form action={formAction} className="grid gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
+        <form action={formAction} className="grid gap-3 rounded-lg bg-surface-muted p-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="lt-name">Libellé</Label>
             <Input id="lt-name" name="name" required placeholder="Congé sabbatique" />
@@ -255,11 +255,11 @@ export function LeaveTypeSection({
             <Input id="lt-color" name="color" type="color" defaultValue="#2563eb" />
           </div>
           <div className="flex flex-col justify-end gap-2 pb-1">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-content-muted">
               <input type="checkbox" name="is_paid" defaultChecked className="h-4 w-4 rounded" />
               Rémunéré
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-content-muted">
               <input type="checkbox" name="requires_justification" className="h-4 w-4 rounded" />
               Justificatif obligatoire
             </label>
@@ -301,14 +301,14 @@ export function LeavePolicySection({
           description="Sans politique, aucune demande de congé n'est acceptée : le solde et le préavis en dépendent."
         />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border">
           {policies.map((p) => (
             <li key={p.id} className="flex items-start justify-between gap-3 py-2">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-800">
+                <p className="text-sm font-medium text-content">
                   {typeById.get(p.leave_type_id)?.name ?? "Type inconnu"} — {p.name}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-content-muted">
                   effet le {formatDate(p.effective_from)}
                   {p.effective_to ? ` → ${formatDate(p.effective_to)}` : ""} ·{" "}
                   {p.accrual_frequency === "none"
@@ -341,14 +341,14 @@ export function LeavePolicySection({
         </ul>
       )}
 
-      <div className="border-t border-slate-100 pt-4">
+      <div className="border-t border-border pt-4">
         <Button variant="outline" size="sm" onClick={() => setOpen(!open)}>
           {open ? "Annuler" : "Ajouter une politique"}
         </Button>
       </div>
 
       {open && (
-        <form action={formAction} className="grid gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
+        <form action={formAction} className="grid gap-3 rounded-lg bg-surface-muted p-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="lp-type">Type de congé</Label>
             <Select id="lp-type" name="leave_type_id" required>
@@ -405,15 +405,15 @@ export function LeavePolicySection({
             </Select>
           </div>
           <div className="flex flex-col gap-2 sm:col-span-2">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-content-muted">
               <input type="checkbox" name="allow_half_days" defaultChecked className="h-4 w-4 rounded" />
               Autoriser les demi-journées
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-content-muted">
               <input type="checkbox" name="proration" defaultChecked className="h-4 w-4 rounded" />
               Proratiser l&apos;acquisition à l&apos;entrée
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-content-muted">
               <input type="checkbox" name="allow_negative_balance" className="h-4 w-4 rounded" />
               Autoriser un solde négatif
             </label>
@@ -455,7 +455,7 @@ export function ScheduleSection({
           <form
             key={s.id}
             action={formAction}
-            className="space-y-3 rounded-lg border border-slate-200 p-4"
+            className="space-y-3 rounded-lg border border-border p-4"
           >
             <input type="hidden" name="id" value={s.id} />
 
@@ -500,7 +500,7 @@ export function ScheduleSection({
                   const worked = day !== null && day !== undefined;
                   return (
                     <div key={d.key} className="flex items-center gap-3">
-                      <label className="flex w-28 items-center gap-2 text-sm text-slate-600">
+                      <label className="flex w-28 items-center gap-2 text-sm text-content-muted">
                         <input
                           type="checkbox"
                           name={`day_${d.key}`}
@@ -516,7 +516,7 @@ export function ScheduleSection({
                         className="h-8 w-28"
                         defaultValue={day?.start ?? "08:00"}
                       />
-                      <span className="text-xs text-slate-400">→</span>
+                      <span className="text-xs text-content-subtle">→</span>
                       <Input
                         aria-label={`Fin ${d.label}`}
                         name={`end_${d.key}`}

@@ -10,12 +10,17 @@ type Tone =
   | "brand";
 
 const TONES: Record<Tone, string> = {
-  neutral: "bg-slate-100 text-slate-700 ring-slate-200",
-  info: "bg-sky-50 text-sky-700 ring-sky-200",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  warning: "bg-amber-50 text-amber-700 ring-amber-200",
-  danger: "bg-red-50 text-red-700 ring-red-200",
-  brand: "bg-blue-50 text-blue-700 ring-blue-200",
+  neutral:
+    "bg-surface-muted text-content ring-slate-200 dark:bg-slate-400/15 dark:text-slate-300 dark:ring-slate-400/20",
+  info: "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/20",
+  success:
+    "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/20",
+  warning:
+    "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/20",
+  danger:
+    "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/15 dark:text-red-200 dark:ring-red-400/20",
+  brand:
+    "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-200 dark:ring-violet-400/20",
 };
 
 export function Badge({
@@ -35,34 +40,9 @@ export function Badge({
   );
 }
 
-const STATUS_TONES: Record<string, Tone> = {
-  draft: "neutral",
-  pending: "warning",
-  approved: "success",
-  rejected: "danger",
-  cancelled: "neutral",
-  open: "info",
-  closed: "neutral",
-  corrected: "brand",
-  flagged: "danger",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Brouillon",
-  pending: "En attente",
-  approved: "Approuvée",
-  rejected: "Refusée",
-  cancelled: "Annulée",
-  open: "En cours",
-  closed: "Terminée",
-  corrected: "Corrigée",
-  flagged: "À vérifier",
-};
-
-export function StatusBadge({ status }: { status: string }) {
-  return (
-    <Badge tone={STATUS_TONES[status] ?? "neutral"}>
-      {STATUS_LABELS[status] ?? status}
-    </Badge>
-  );
-}
+/**
+ * `StatusBadge` vit désormais dans son propre fichier, avec la table de
+ * correspondance statut → teinte partagée par toute l'application.
+ * Ce ré-export évite de modifier les pages qui l'importaient d'ici.
+ */
+export { StatusBadge } from "./status-badge";

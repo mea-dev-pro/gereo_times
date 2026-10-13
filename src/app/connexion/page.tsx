@@ -20,27 +20,27 @@ export default async function ConnexionPage({
         <div className="mb-6 text-center">
           <Link
             href="/connexion"
-            className="text-2xl font-semibold tracking-tight text-slate-900"
+            className="text-2xl font-semibold tracking-tight text-content"
           >
-            Gereo<span className="text-blue-600">Times</span>
+            Gereo<span className="text-brand-strong">Times</span>
           </Link>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-content-muted">
             Gestion du temps de travail et des congés
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="mb-4 text-lg font-semibold text-slate-900">
+        <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+          <h1 className="mb-4 text-lg font-semibold text-content">
             Connexion
           </h1>
           <LoginForm next={next} />
         </div>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm text-content-muted">
           Pas encore de compte ?{" "}
           <Link
             href="/inscription"
-            className="font-medium text-blue-600 hover:underline"
+            className="font-medium text-brand-strong hover:underline"
           >
             Créer une organisation
           </Link>

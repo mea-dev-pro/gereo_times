@@ -44,7 +44,7 @@ export function MemberRowActions({
 
   if (isSelf) {
     return (
-      <span className="text-xs text-slate-400">Vous-même</span>
+      <span className="text-xs text-content-subtle">Vous-même</span>
     );
   }
 

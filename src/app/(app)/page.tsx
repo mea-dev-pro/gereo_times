@@ -109,10 +109,10 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-content">
           Bonjour {session.profile.full_name?.split(" ")[0] ?? ""}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-content-muted">
           {session.organization.name} · semaine du {week.label}
         </p>
       </header>
@@ -121,13 +121,13 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
               Heures cette semaine
             </p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+            <p className="mt-1 text-2xl font-semibold text-content">
               {formatMinutes(weekMinutes)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-content-muted">
               {(weekEntries ?? []).length} jour(s) pointé(s)
             </p>
           </CardContent>
@@ -135,25 +135,25 @@ export default async function DashboardPage() {
 
         <Card>
           <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
               Congés disponibles
             </p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+            <p className="mt-1 text-2xl font-semibold text-content">
               {totalAvailable.toFixed(2).replace(".", ",")} j
             </p>
-            <p className="mt-1 text-xs text-slate-500">tous types confondus</p>
+            <p className="mt-1 text-xs text-content-muted">tous types confondus</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
               Statut de pointage
             </p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+            <p className="mt-1 text-2xl font-semibold text-content">
               {openEntry ? "En cours" : "Arrêté"}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-content-muted">
               {openEntry
                 ? `depuis ${formatDateTime(openEntry.clock_in)}`
                 : "aucune session ouverte"}
@@ -163,13 +163,13 @@ export default async function DashboardPage() {
 
         <Card>
           <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
               À traiter
             </p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+            <p className="mt-1 text-2xl font-semibold text-content">
               {(pendingLeaves ?? 0) + (pendingAdjustments ?? 0)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-content-muted">
               {canManage(session.membership.role)
                 ? `${pendingLeaves ?? 0} congé(s), ${pendingAdjustments ?? 0} correction(s)`
                 : "réservé aux managers"}
@@ -209,12 +209,12 @@ export default async function DashboardPage() {
                           className="h-2.5 w-2.5 shrink-0 rounded-full"
                           style={{ backgroundColor: type?.color ?? "#94a3b8" }}
                         />
-                        <span className="truncate text-sm text-slate-700">
+                        <span className="truncate text-sm text-content">
                           {type?.name ?? "Type inconnu"}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
-                        <span className="text-slate-500">
+                        <span className="text-content-muted">
                           {Number(b.used_days) > 0
                             ? `${Number(b.used_days).toFixed(1)} j utilisés`
                             : ""}
@@ -235,7 +235,7 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>Mes dernières demandes</CardTitle>
             <CardDescription>
-              <Link href="/conges" className="text-blue-600 hover:underline">
+              <Link href="/conges" className="text-brand-strong hover:underline">
                 Voir toutes mes demandes
               </Link>
             </CardDescription>
@@ -250,13 +250,13 @@ export default async function DashboardPage() {
               (myRequests ?? []).map((r) => (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                  className="flex items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">
+                    <p className="truncate text-sm font-medium text-content">
                       {typeById.get(r.leave_type_id)?.name ?? "Congé"}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-content-muted">
                       {formatDate(r.start_date)} → {formatDate(r.end_date)} ·{" "}
                       {Number(r.total_days).toFixed(2).replace(".", ",")} j
                     </p>

@@ -4,10 +4,13 @@ import { cn } from "@/lib/utils";
 type Variant = "info" | "success" | "warning" | "danger";
 
 const VARIANTS: Record<Variant, string> = {
-  info: "border-sky-200 bg-sky-50 text-sky-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  danger: "border-red-200 bg-red-50 text-red-900",
+  info: "border-blue-200 bg-blue-50 text-blue-900 dark:border-sky-400/25 dark:bg-sky-500/10 dark:text-sky-100",
+  success:
+    "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-400/25 dark:bg-emerald-500/10 dark:text-emerald-100",
+  warning:
+    "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-100",
+  danger:
+    "border-red-200 bg-red-50 text-red-900 dark:border-red-400/25 dark:bg-red-500/10 dark:text-red-100",
 };
 
 export function Alert({
@@ -25,7 +28,7 @@ export function Alert({
     <div
       role={variant === "danger" ? "alert" : "status"}
       className={cn(
-        "rounded-lg border px-4 py-3 text-sm",
+        "rounded-control border px-4 py-3 text-sm",
         VARIANTS[variant],
         className
       )}
@@ -36,19 +39,8 @@ export function Alert({
   );
 }
 
-export function EmptyState({
-  title,
-  description,
-}: {
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-      <p className="text-sm font-medium text-slate-700">{title}</p>
-      {description && (
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
-      )}
-    </div>
-  );
-}
+/**
+ * `EmptyState` vit désormais dans son propre fichier (icône, action, thème
+ * sombre). Ce ré-export évite de modifier les pages qui l'importaient d'ici.
+ */
+export { EmptyState } from "./empty-state";

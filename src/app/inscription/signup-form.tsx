@@ -36,7 +36,7 @@ export function SignupForm() {
           required
           placeholder="Acme SARL"
         />
-        <p className="mt-1.5 text-xs text-slate-500">
+        <p className="mt-1.5 text-xs text-content-muted">
           Vous en serez l&apos;administrateur. Un calendrier de travail, cinq
           types de congés et les jours fériés seront créés automatiquement.
         </p>
@@ -64,7 +64,7 @@ export function SignupForm() {
           minLength={6}
           autoComplete="new-password"
         />
-        <p className="mt-1.5 text-xs text-slate-500">6 caractères minimum.</p>
+        <p className="mt-1.5 text-xs text-content-muted">6 caractères minimum.</p>
       </div>
 
       <Button
