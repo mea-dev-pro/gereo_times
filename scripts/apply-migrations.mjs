@@ -6,8 +6,13 @@
  *   npm run db:check    affiche l'état du schéma sans rien modifier
  *
  * La chaîne de connexion est lue dans SUPABASE_DB_URL (.env.local).
- * Elle se trouve dans Supabase → Project Settings → Database → Connection string
- * (mode « Session pooler » ou « Direct connection »).
+ * Elle se trouve dans Supabase → Project Settings → Database → Connection string.
+ *
+ * Préférer le pooler, port 6543 (mode transaction) :
+ *   postgresql://postgres.<ref>:<motdepasse>@aws-0-<region>.pooler.supabase.com:6543/postgres
+ * La connexion directe db.<ref>.supabase.co n'a que des enregistrements IPv6
+ * (injoignable sans IPv6 global) et le port 5432 du pooler est filtré sur
+ * certains réseaux : le 6543 est le seul chemin fiable.
  */
 
 import { readFileSync, readdirSync } from "node:fs";
@@ -38,7 +43,7 @@ if (!url) {
   console.error(
     "\n  SUPABASE_DB_URL est absente.\n" +
       "  Renseignez-la dans .env.local, par exemple :\n" +
-      "  SUPABASE_DB_URL=postgresql://postgres:MOT_DE_PASSE@db.qvopcsqabvqnjcfpxlut.supabase.co:5432/postgres\n"
+      "  SUPABASE_DB_URL=postgresql://postgres:***@aws-0-eu-west-1.pooler.supabase.com:6543/postgres\n"
   );
   process.exit(1);
 }
