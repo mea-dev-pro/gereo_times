@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Users } from "lucide-react";
 import { isHrOrAdmin, requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -9,20 +10,43 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/alert";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { FilterBar, FilterField } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/page-header";
+import { SearchInput } from "@/components/search-input";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
+import type { MemberStatus, OrgRole } from "@/types/database";
 import { InviteForm, type ManagerOption } from "./invite-form";
 import { MemberRowActions, RevokeInvitationButton } from "./member-actions";
 
 export const metadata: Metadata = { title: "Équipe" };
 
-// Page bloquante : elle lit la session à chaque requête.
+// Page bloquante : elle lit la session et les filtres à chaque requête.
 export const instant = false;
 
-export default async function EquipePage() {
+type Membre = {
+  id: string;
+  user_id: string;
+  role: OrgRole;
+  status: MemberStatus;
+  job_title: string | null;
+  department_id: string | null;
+  manager_id: string | null;
+  hire_date: string | null;
+};
+
+export default async function EquipePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const session = await requireSession();
   if (!isHrOrAdmin(session.membership.role)) redirect("/");
+
+  const { q } = await searchParams;
+  const recherche = (q ?? "").trim().toLowerCase();
 
   const supabase = await createClient();
   const orgId = session.organization.id;
@@ -77,19 +101,127 @@ export default async function EquipePage() {
       label: `${nameOf(m.id) ?? "Sans nom"} — ${ROLE_LABELS[m.role]}`,
     }));
 
-  const activeCount = (members ?? []).filter((m) => m.status === "active").length;
+  const actifs = (members ?? []).filter((m) => m.status === "active").length;
+
+  // Filtrage serveur : la RLS s'applique, et rien de non autorisé ne part vers
+  // le navigateur. On cherche sur le nom, l'adresse, le poste et le rôle.
+  const membresFiltres = ((members ?? []) as Membre[]).filter((m) => {
+    if (!recherche) return true;
+    const p = profileById.get(m.user_id);
+    return [p?.full_name, p?.email, m.job_title, ROLE_LABELS[m.role]]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(recherche));
+  });
+
+  const invitationsFiltrees = (invitations ?? []).filter(
+    (inv) =>
+      !recherche ||
+      [inv.email, inv.job_title, ROLE_LABELS[inv.role]]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(recherche))
+  );
+
+  const colonnes: Column<Membre>[] = [
+    {
+      key: "collaborateur",
+      header: "Collaborateur",
+      cell: (m) => {
+        const p = profileById.get(m.user_id);
+        return (
+          <>
+            <p className="font-medium text-content">{p?.full_name ?? "—"}</p>
+            <p className="text-xs text-content-muted">{p?.email}</p>
+          </>
+        );
+      },
+    },
+    {
+      key: "poste",
+      header: "Poste",
+      hideBelow: "md",
+      cell: (m) => (
+        <span className="text-content-muted">{m.job_title ?? "—"}</span>
+      ),
+    },
+    {
+      key: "departement",
+      header: "Département",
+      hideBelow: "lg",
+      cell: (m) => (
+        <span className="text-content-muted">
+          {m.department_id
+            ? (departmentById.get(m.department_id)?.name ?? "—")
+            : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "responsable",
+      header: "Responsable",
+      hideBelow: "lg",
+      cell: (m) => (
+        <span className="text-content-muted">{nameOf(m.manager_id) ?? "—"}</span>
+      ),
+    },
+    {
+      key: "entree",
+      header: "Entrée",
+      hideBelow: "md",
+      cell: (m) => (
+        <span className="text-content-muted">{formatDate(m.hire_date)}</span>
+      ),
+    },
+    {
+      key: "role",
+      header: "Rôle",
+      hideBelow: "sm",
+      cell: (m) => (
+        <span className="text-content-muted">
+          {ROLE_LABELS[m.role] ?? m.role}
+        </span>
+      ),
+    },
+    {
+      key: "statut",
+      header: "Statut",
+      cell: (m) => <StatusBadge status={m.status} />,
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cell: (m) => (
+        <MemberRowActions
+          memberId={m.id}
+          role={m.role}
+          active={m.status === "active"}
+          isSelf={m.id === session.membership.id}
+        />
+      ),
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-content">
-          Équipe
-        </h1>
-        <p className="mt-1 text-sm text-content-muted">
-          {activeCount} membre(s) actif(s) · {invitations?.length ?? 0} invitation(s)
-          en attente
-        </p>
-      </header>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <PageHeader
+        title="Équipe"
+        description={
+          <>
+            {actifs} membre(s) actif(s) · {invitations?.length ?? 0} invitation(s)
+            en attente
+          </>
+        }
+      />
+
+      <FilterBar>
+        <FilterField label="Recherche">
+          <SearchInput
+            initial={q ?? ""}
+            placeholder="Nom, adresse, poste…"
+            label="Rechercher un collaborateur"
+          />
+        </FilterField>
+      </FilterBar>
 
       <Card>
         <CardHeader>
@@ -104,7 +236,7 @@ export default async function EquipePage() {
         </CardContent>
       </Card>
 
-      {(invitations ?? []).length > 0 && (
+      {invitationsFiltrees.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Invitations en attente</CardTitle>
@@ -113,7 +245,7 @@ export default async function EquipePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(invitations ?? []).map((inv) => (
+            {invitationsFiltrees.map((inv) => (
               <div
                 key={inv.id}
                 className="flex items-start justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
@@ -145,74 +277,33 @@ export default async function EquipePage() {
         <CardHeader>
           <CardTitle>Membres</CardTitle>
           <CardDescription>
-            Rôles et rattachements de l&apos;organisation
+            {recherche
+              ? `${membresFiltres.length} résultat(s) pour « ${q} »`
+              : "Rôles et rattachements de l'organisation"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {(members ?? []).length === 0 ? (
-            <EmptyState title="Aucun membre" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
-                    <th className="py-2 pr-3 font-medium">Collaborateur</th>
-                    <th className="py-2 pr-3 font-medium">Poste</th>
-                    <th className="py-2 pr-3 font-medium">Département</th>
-                    <th className="py-2 pr-3 font-medium">Responsable</th>
-                    <th className="py-2 pr-3 font-medium">Entrée</th>
-                    <th className="py-2 pr-3 font-medium">Statut</th>
-                    <th className="py-2 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(members ?? []).map((m) => {
-                    const p = profileById.get(m.user_id);
-                    return (
-                      <tr
-                        key={m.id}
-                        className="border-b border-border last:border-0"
-                      >
-                        <td className="py-2.5 pr-3">
-                          <p className="font-medium text-content">
-                            {p?.full_name ?? "—"}
-                          </p>
-                          <p className="text-xs text-content-muted">{p?.email}</p>
-                        </td>
-                        <td className="py-2.5 pr-3 text-content-muted">
-                          {m.job_title ?? "—"}
-                        </td>
-                        <td className="py-2.5 pr-3 text-content-muted">
-                          {m.department_id
-                            ? departmentById.get(m.department_id)?.name ?? "—"
-                            : "—"}
-                        </td>
-                        <td className="py-2.5 pr-3 text-content-muted">
-                          {nameOf(m.manager_id) ?? "—"}
-                        </td>
-                        <td className="py-2.5 pr-3 text-content-muted">
-                          {formatDate(m.hire_date)}
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <Badge tone={m.status === "active" ? "success" : "neutral"}>
-                            {m.status === "active" ? "Actif" : "Inactif"}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5">
-                          <MemberRowActions
-                            memberId={m.id}
-                            role={m.role}
-                            active={m.status === "active"}
-                            isSelf={m.id === session.membership.id}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable
+            columns={colonnes}
+            rows={membresFiltres}
+            rowKey={(m) => m.id}
+            caption="Membres de l'organisation"
+            empty={
+              recherche ? (
+                <EmptyState
+                  icon={Users}
+                  title="Aucun collaborateur ne correspond"
+                  description={`Aucun résultat pour « ${q} ». Essayez un autre nom, une adresse ou un poste.`}
+                />
+              ) : (
+                <EmptyState
+                  icon={Users}
+                  title="Aucun membre"
+                  description="Invitez un premier collaborateur pour commencer."
+                />
+              )
+            }
+          />
         </CardContent>
       </Card>
     </div>

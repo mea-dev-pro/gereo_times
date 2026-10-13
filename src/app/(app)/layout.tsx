@@ -8,6 +8,7 @@ import {
   type NavItem,
 } from "@/components/nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ToastProvider } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/utils";
 
@@ -81,7 +82,8 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
+    <ToastProvider>
+      <div className="flex min-h-screen flex-col lg:flex-row">
       <aside className="no-print border-b border-border bg-surface lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
         <div className="px-5 pb-2 pt-4">
           <Link
@@ -119,7 +121,8 @@ export default async function AppLayout({
         </div>
       </aside>
 
-      <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
-    </div>
+        <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+        </div>
+    </ToastProvider>
   );
 }
