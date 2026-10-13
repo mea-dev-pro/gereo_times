@@ -76,17 +76,25 @@ sont créés automatiquement.
 
 ```bash
 E2E_ADMIN_PASSWORD='…' E2E_EMPLOYE_PASSWORD='…' npm run e2e:auth
-npm run e2e
+npm run e2e                 # 52 scénarios, 5 projets
+npm run captures            # captures d'écran pour la revue visuelle
+node scripts/perf.mjs http://localhost:3000   # performance par écran
 ```
 
 Les sessions sont obtenues par l'API d'authentification puis injectées en
 cookies — aucun mot de passe n'est saisi dans un formulaire. Les fichiers
 produits vivent dans `tests/.auth/`, exclu du dépôt.
 
-La suite couvre **23 scénarios** : protection des routes, cloisonnement des
-écrans RH, cycle de pointage, estimation des jours ouvrés, confidentialité des
-motifs dans le calendrier, contrôle d'accès des exports et téléchargement des
-trois CSV.
+La suite couvre **52 scénarios** répartis en cinq projets : `public` (protection
+des routes, écrans d'activation), `employe` (cloisonnement des écrans RH, cycle
+de pointage, estimation des jours ouvrés, confidentialité des motifs dans le
+calendrier), `admin` (paramètres, rapports, exports CSV, validations, thème),
+`clavier` (ordre de tabulation, focus visible, dialogue piloté au clavier) et
+`mobile` (débordement horizontal sur les onze écrans).
+
+Le détail des exécutions, les captures avant/après et les mesures de performance
+sont consignés dans `docs/RAPPORT-TESTS.md` ; la comparaison avec la maquette de
+référence dans `docs/REVUE-COMPARATIVE.md`.
 
 > Lancez-la contre un **build de production** (`npm run build && npm run start`)
 > plutôt qu'en mode développement : chaque page se compile à la première visite
@@ -125,7 +133,9 @@ src/
   components/ui/            primitives visuelles
   types/database.ts         types de la base
 
-scripts/apply-migrations.mjs
+scripts/apply-migrations.mjs   migrations + état du schéma
+scripts/captures.mjs          captures d'écran (revue visuelle)
+scripts/perf.mjs              mesures de performance par écran
 ```
 
 ### Choix structurants
@@ -201,9 +211,9 @@ pages publiques ont été vérifiées dans un navigateur.
   RPC métier ; table servant de **boîte d'envoi email** (Resend), avec état
   d'expédition et trace d'échec en base
 
-**À venir (phase 2, sprints 4 à 6)**
+**À venir (phase 2, sprints 5 et 6)**
 
-- tests Playwright, déploiement Vercel
+- déploiement (Vercel + Supabase), notifications par email en production
 
 ---
 

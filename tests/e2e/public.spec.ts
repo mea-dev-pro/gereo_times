@@ -50,3 +50,46 @@ test.describe("Accès public", () => {
     expect(response.status()).toBe(401);
   });
 });
+
+/**
+ * Point d'arrivée des liens envoyés par courriel. Aucun jeton réel n'est
+ * nécessaire : ce qui est vérifié ici, c'est le traitement du message d'échec,
+ * la partie du code qui décide de ne rien tenter quand le lien est mort.
+ */
+test.describe("Activation — liens invalides", () => {
+  test("un lien expiré est annoncé sans tenter d'ouvrir une session", async ({
+    page,
+  }) => {
+    await page.goto("/auth/confirmer#error=access_denied&error_code=otp_expired");
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Activation impossible" })
+    ).toBeVisible();
+    await expect(
+      page.getByText(/déjà été utilisé ou a expiré/)
+    ).toBeVisible();
+    // L'écran reste sur place : aucune redirection n'a été déclenchée.
+    await expect(page).toHaveURL(/\/auth\/confirmer/);
+  });
+
+  test("un fragment porteur d'une erreur explicite est affiché tel quel", async ({
+    page,
+  }) => {
+    await page.goto(
+      "/auth/confirmer#error=access_denied&error_description=Lien%20r%C3%A9voqu%C3%A9"
+    );
+
+    await expect(page.getByText("Lien révoqué")).toBeVisible();
+  });
+
+  test("sans code ni jeton, l'écran finit par annoncer un lien invalide", async ({
+    page,
+  }) => {
+    await page.goto("/auth/confirmer");
+
+    // Le code tente douze fois, à 400 ms d'intervalle : ~5 s avant l'annonce.
+    await expect(
+      page.getByText(/Ce lien est invalide ou a expiré/)
+    ).toBeVisible({ timeout: 20_000 });
+  });
+});
