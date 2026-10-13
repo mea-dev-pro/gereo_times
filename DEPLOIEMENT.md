@@ -87,6 +87,56 @@ donnent accès à la base.
 
 ---
 
+## 3 bis. Déploiement effectué
+
+État réel, vérifié au navigateur et par la CLI :
+
+- Projet Vercel : `devp-roject/gereotimes` (équipe DEVProject), framework détecté seul.
+- URL de production : https://gereotimes.vercel.app — déploiement `READY`,
+  build de 31 s, Node choisi d'après `engines` de `package.json`.
+- Variables posées pour **Production et Preview** : `NEXT_PUBLIC_SUPABASE_URL`
+  et `NEXT_PUBLIC_SUPABASE_ANON_KEY` (type *Config*), puis
+  `SUPABASE_SERVICE_ROLE_KEY` (type *Secret*). Les deux valeurs publiques ont
+  été relues depuis Vercel et comparées à `.env.local` : identiques. La clé
+  secrète n'est volontairement pas relisible.
+- `RESEND_API_KEY` et `EMAIL_FROM` ne sont pas posées : la messagerie reste
+  interne, comme prévu sans elles.
+
+Contrôles passés sur la production :
+
+```bash
+E2E_BASE_URL=https://gereotimes.vercel.app npx playwright test --project=public   # 9/9
+```
+
+Et une tentative de connexion avec un compte inexistant renvoie
+« Email ou mot de passe incorrect. » — la réponse de Supabase Auth, donc les
+clés de production sont acceptées et la base est joignable depuis Vercel.
+
+Deux points restent à faire, hors CLI :
+
+1. **Auto-déploiement.** `vercel git connect` répond `You need admin or write
+   access to the repository "gereo_times" to link it. (400)` : l'application
+   Vercel n'est pas autorisée sur le dépôt. Sur GitHub, autoriser Vercel sur
+   `mea-dev-pro/gereo_times` (Settings → GitHub Apps → Vercel → Repository
+   access), puis relancer `vercel git connect`. En attendant, publier se fait
+   par `vercel deploy --prod`.
+2. **Redirect URL Supabase.** Ajouter `https://gereotimes.vercel.app/auth/confirmer`
+   dans Authentication → URL Configuration. Sans cela, les liens d'activation
+   envoyés aux collaborateurs retombent sur l'accueil.
+
+Les 52 scénarios E2E complets (`employe`, `admin`, `mobile`) ne sont pas encore
+rejoués contre la production : leurs sessions sont liées à `localhost:3000` et
+les mots de passe des comptes de recette ne sont pas stockés. Il faut les
+fournir une fois pour régénérer `tests/.auth/` contre le domaine public
+
+```bash
+E2E_BASE_URL=https://gereotimes.vercel.app \
+E2E_ADMIN_PASSWORD='…' E2E_EMPLOYE_PASSWORD='…' \
+npm run e2e:auth && npm run e2e
+```
+
+---
+
 ## 4. Vérifications après déploiement
 
 ```bash
