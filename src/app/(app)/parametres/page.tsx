@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
 import {
   DepartmentSection,
   HolidaySection,
@@ -95,14 +96,10 @@ export default async function ParametresPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-content">
-          Paramètres RH
-        </h1>
-        <p className="mt-1 text-sm text-content-muted">
-          Règles de temps de travail et de congés de {session.organization.name}
-        </p>
-      </header>
+      <PageHeader
+        title="Paramètres RH"
+        description={`Règles de temps de travail et de congés de ${session.organization.name}`}
+      />
 
       <nav
         aria-label="Sections des paramètres"
@@ -112,7 +109,7 @@ export default async function ParametresPage() {
           <a
             key={a.href}
             href={a.href}
-            className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-content-muted hover:border-border-strong hover:text-content"
+            className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-content-muted transition-colors hover:border-brand hover:text-brand-strong"
           >
             {a.label}
           </a>

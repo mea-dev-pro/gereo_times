@@ -68,7 +68,9 @@ test.describe("Administrateur", () => {
       await expect(page.getByText(kpi, { exact: true })).toBeVisible();
     }
 
-    await expect(page.getByText("Détail par collaborateur")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Détail par collaborateur" })
+    ).toBeVisible();
   });
 
   test("le filtre de période des rapports est appliqué", async ({ page }) => {

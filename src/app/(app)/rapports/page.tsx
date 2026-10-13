@@ -1,6 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  BarChart3,
+  CalendarCheck,
+  CalendarDays,
+  Clock,
+  Gauge,
+  TrendingDown,
+  TrendingUp,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { isHrOrAdmin, requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -11,7 +23,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard, type StatTint } from "@/components/ui/stat-card";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { FilterBar, FilterField } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatMinutes, ROLE_LABELS } from "@/lib/utils";
 
@@ -32,6 +48,16 @@ function defaultBounds() {
 
 const isoRe = /^\d{4}-\d{2}-\d{2}$/;
 
+type LigneDetail = {
+  id: string;
+  nom: string;
+  email: string | undefined;
+  role: string;
+  minutes: number;
+  joursConges: number;
+  solde: number;
+};
+
 export default async function RapportsPage({
   searchParams,
 }: PageProps<"/rapports">) {
@@ -45,7 +71,9 @@ export default async function RapportsPage({
       ? params.from
       : bounds.from;
   const to =
-    typeof params.to === "string" && isoRe.test(params.to) ? params.to : bounds.to;
+    typeof params.to === "string" && isoRe.test(params.to)
+      ? params.to
+      : bounds.to;
 
   const supabase = await createClient();
   const orgId = session.organization.id;
@@ -85,16 +113,17 @@ export default async function RapportsPage({
   ]);
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const memberById = new Map((members ?? []).map((m) => [m.id, m]));
+
   const nameOf = (memberId: string) => {
-    const m = (members ?? []).find((x) => x.id === memberId);
+    const m = memberById.get(memberId);
     if (!m) return "—";
     const p = profileById.get(m.user_id);
     return p?.full_name ?? p?.email ?? "—";
   };
 
-  const activeMembers = (members ?? []).filter((m) => m.status === "active");
+  const actifs = (members ?? []).filter((m) => m.status === "active");
 
-  // --- Indicateurs de temps --------------------------------------------------
   const totalEffective = (entries ?? []).reduce(
     (s, e) => s + (e.effective_minutes ?? 0),
     0
@@ -103,44 +132,46 @@ export default async function RapportsPage({
     (s, e) => s + (e.variance_minutes ?? 0),
     0
   );
-  const sessionCount = (entries ?? []).length;
-  const agentsWithTime = new Set((entries ?? []).map((e) => e.member_id)).size;
-  const avgPerAgent = agentsWithTime ? Math.round(totalEffective / agentsWithTime) : 0;
+  const nbSessions = (entries ?? []).length;
+  const agentsAyantPointe = new Set((entries ?? []).map((e) => e.member_id)).size;
+  const moyenneParAgent = agentsAyantPointe
+    ? Math.round(totalEffective / agentsAyantPointe)
+    : 0;
 
-  // --- Indicateurs de congés -------------------------------------------------
-  const approved = (requests ?? []).filter((r) => r.status === "approved");
-  const pending = (requests ?? []).filter((r) => r.status === "pending");
-  const approvedDays = approved.reduce((s, r) => s + Number(r.total_days), 0);
+  const approuves = (requests ?? []).filter((r) => r.status === "approved");
+  const enAttente = (requests ?? []).filter((r) => r.status === "pending");
+  const joursApprouves = approuves.reduce((s, r) => s + Number(r.total_days), 0);
 
-  const daysByType = new Map<string, number>();
-  for (const r of approved) {
-    daysByType.set(
+  const joursParType = new Map<string, number>();
+  for (const r of approuves) {
+    joursParType.set(
       r.leave_type_id,
-      (daysByType.get(r.leave_type_id) ?? 0) + Number(r.total_days)
+      (joursParType.get(r.leave_type_id) ?? 0) + Number(r.total_days)
     );
   }
-  const maxTypeDays = Math.max(1, ...Array.from(daysByType.values()));
+  const maxType = Math.max(1, ...Array.from(joursParType.values()));
 
-  const availableByMember = new Map<string, number>();
+  const soldeParMembre = new Map<string, number>();
   for (const b of balances ?? []) {
-    availableByMember.set(
+    soldeParMembre.set(
       b.member_id,
-      (availableByMember.get(b.member_id) ?? 0) + Number(b.available_days)
+      (soldeParMembre.get(b.member_id) ?? 0) + Number(b.available_days)
     );
   }
 
-  const minutesByMember = new Map<string, number>();
+  const minutesParMembre = new Map<string, number>();
   for (const e of entries ?? []) {
-    minutesByMember.set(
+    minutesParMembre.set(
       e.member_id,
-      (minutesByMember.get(e.member_id) ?? 0) + (e.effective_minutes ?? 0)
+      (minutesParMembre.get(e.member_id) ?? 0) + (e.effective_minutes ?? 0)
     );
   }
-  const daysByMember = new Map<string, number>();
-  for (const r of approved) {
-    daysByMember.set(
+
+  const joursParMembre = new Map<string, number>();
+  for (const r of approuves) {
+    joursParMembre.set(
       r.member_id,
-      (daysByMember.get(r.member_id) ?? 0) + Number(r.total_days)
+      (joursParMembre.get(r.member_id) ?? 0) + Number(r.total_days)
     );
   }
 
@@ -149,99 +180,178 @@ export default async function RapportsPage({
   );
 
   const exportQuery = `from=${from}&to=${to}`;
+  const periodeLisible = `${from.split("-").reverse().join("/")} au ${to
+    .split("-")
+    .reverse()
+    .join("/")}`;
 
-  const kpis = [
+  // Teintes sémantiques : menthe pour une information neutre, ambre dès qu'il
+  // y a quelque chose à regarder, pêche pour ce qui est consommé.
+  const kpis: {
+    label: string;
+    value: string;
+    hint: string;
+    tint: StatTint;
+    icon: LucideIcon;
+  }[] = [
     {
       label: "Effectif actif",
-      value: String(activeMembers.length),
-      hint: `${(members ?? []).length - activeMembers.length} inactif(s)`,
+      value: String(actifs.length),
+      hint: `${(members ?? []).length - actifs.length} inactif(s)`,
+      tint: "violet",
+      icon: Users,
     },
     {
       label: "Heures effectives",
       value: formatMinutes(totalEffective),
-      hint: `${sessionCount} session(s) pointée(s)`,
+      hint: `${nbSessions} session(s) pointée(s)`,
+      tint: "mint",
+      icon: Clock,
     },
     {
       label: "Moyenne par agent",
-      value: formatMinutes(avgPerAgent),
-      hint: `${agentsWithTime} agent(s) ayant pointé`,
+      value: formatMinutes(moyenneParAgent),
+      hint: `${agentsAyantPointe} agent(s) ayant pointé`,
+      tint: "mint",
+      icon: Gauge,
     },
     {
       label: "Écart total",
       value: formatMinutes(totalVariance),
-      hint: totalVariance >= 0 ? "en avance sur le prévu" : "en retard sur le prévu",
+      hint:
+        totalVariance >= 0 ? "en avance sur le prévu" : "en retard sur le prévu",
+      tint: totalVariance >= 0 ? "mint" : "amber",
+      icon: totalVariance >= 0 ? TrendingUp : TrendingDown,
     },
     {
       label: "Congés approuvés",
-      value: `${approvedDays.toFixed(1).replace(".", ",")} j`,
-      hint: `${approved.length} demande(s)`,
+      value: `${joursApprouves.toFixed(1).replace(".", ",")} j`,
+      hint: `${approuves.length} demande(s)`,
+      tint: "peach",
+      icon: CalendarCheck,
     },
     {
       label: "En attente",
-      value: String(pending.length),
-      hint: pending.length ? "à traiter" : "à jour",
+      value: String(enAttente.length),
+      hint: enAttente.length ? "à traiter" : "à jour",
+      tint: enAttente.length ? "amber" : "mint",
+      icon: CalendarDays,
+    },
+  ];
+
+  const details: LigneDetail[] = actifs.map((m) => {
+    const p = profileById.get(m.user_id);
+    return {
+      id: m.id,
+      nom: p?.full_name ?? nameOf(m.id),
+      email: p?.email,
+      role: m.role,
+      minutes: minutesParMembre.get(m.id) ?? 0,
+      joursConges: joursParMembre.get(m.id) ?? 0,
+      solde: soldeParMembre.get(m.id) ?? 0,
+    };
+  });
+
+  const colonnes: Column<LigneDetail>[] = [
+    {
+      key: "nom",
+      header: "Collaborateur",
+      cell: (l) => (
+        <>
+          <p className="font-medium text-content">{l.nom}</p>
+          <p className="text-xs text-content-muted">{l.email}</p>
+        </>
+      ),
+    },
+    {
+      key: "role",
+      header: "Rôle",
+      hideBelow: "md",
+      cell: (l) => (
+        <span className="text-content-muted">
+          {ROLE_LABELS[l.role] ?? l.role}
+        </span>
+      ),
+    },
+    {
+      key: "heures",
+      header: "Heures",
+      cell: (l) => (
+        <span className="font-medium text-content">
+          {formatMinutes(l.minutes)}
+        </span>
+      ),
+    },
+    {
+      key: "conges",
+      header: "Congés pris",
+      hideBelow: "sm",
+      cell: (l) => (
+        <span className="text-content-muted">
+          {l.joursConges.toFixed(1).replace(".", ",")} j
+        </span>
+      ),
+    },
+    {
+      key: "solde",
+      header: "Solde restant",
+      cell: (l) => (
+        <Badge tone={l.solde > 0 ? "brand" : "neutral"}>
+          {l.solde.toFixed(2).replace(".", ",")} j
+        </Badge>
+      ),
+    },
+    {
+      key: "statut",
+      header: "Statut",
+      cell: () => <Badge tone="success">Actif</Badge>,
     },
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-content">
-            Rapports RH
-          </h1>
-          <p className="mt-1 text-sm text-content-muted">
-            Indicateurs agrégés du {from.split("-").reverse().join("/")} au{" "}
-            {to.split("-").reverse().join("/")}
-          </p>
-        </div>
-      </header>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <PageHeader
+        title="Rapports RH"
+        description={`Indicateurs agrégés du ${periodeLisible}`}
+      />
 
       <Card className="no-print">
         <CardHeader>
-          <CardTitle>Période et exports</CardTitle>
-          <CardDescription>
-            Les exports portent sur la période sélectionnée
-          </CardDescription>
+          <div>
+            <CardTitle>Période et exports</CardTitle>
+            <CardDescription>
+              Les exports portent sur la période sélectionnée
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form method="get" className="flex flex-wrap items-end gap-3">
-            <div>
-              <label
-                htmlFor="from"
-                className="mb-1.5 block text-sm font-medium text-content"
-              >
-                Du
-              </label>
-              <input
-                id="from"
-                name="from"
-                type="date"
-                defaultValue={from}
-                className="h-10 rounded-lg border border-border-strong bg-surface px-3 text-sm"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="to"
-                className="mb-1.5 block text-sm font-medium text-content"
-              >
-                Au
-              </label>
-              <input
-                id="to"
-                name="to"
-                type="date"
-                defaultValue={to}
-                className="h-10 rounded-lg border border-border-strong bg-surface px-3 text-sm"
-              />
-            </div>
-            <Button type="submit" variant="outline">
-              Appliquer
-            </Button>
-          </form>
+        <CardContent>
+          <FilterBar>
+            <form className="flex flex-wrap items-end gap-3">
+              <FilterField label="Du" htmlFor="from">
+                <input
+                  id="from"
+                  name="from"
+                  type="date"
+                  defaultValue={from}
+                  className="h-9 rounded-control border border-border-strong bg-surface px-2.5 text-sm text-content"
+                />
+              </FilterField>
+              <FilterField label="Au" htmlFor="to">
+                <input
+                  id="to"
+                  name="to"
+                  type="date"
+                  defaultValue={to}
+                  className="h-9 rounded-control border border-border-strong bg-surface px-2.5 text-sm text-content"
+                />
+              </FilterField>
+              <Button type="submit" variant="outline" size="sm">
+                Appliquer
+              </Button>
+            </form>
+          </FilterBar>
 
-          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
             <a
               href={`/api/export/presence?${exportQuery}`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -264,49 +374,56 @@ export default async function RapportsPage({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {kpis.map((k) => (
-          <Card key={k.label}>
-            <CardContent>
-              <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
-                {k.label}
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-content">
-                {k.value}
-              </p>
-              <p className="mt-1 text-xs text-content-muted">{k.hint}</p>
-            </CardContent>
-          </Card>
+          <StatCard
+            key={k.label}
+            tint={k.tint}
+            icon={k.icon}
+            value={k.value}
+            label={k.label}
+            hint={k.hint}
+          />
         ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Congés par type</CardTitle>
-            <CardDescription>Jours approuvés sur la période</CardDescription>
+            <div>
+              <CardTitle>Congés par type</CardTitle>
+              <CardDescription>Jours approuvés sur la période</CardDescription>
+            </div>
+            <BarChart3
+              className="size-4 shrink-0 text-content-subtle"
+              aria-hidden="true"
+            />
           </CardHeader>
           <CardContent className="space-y-3">
-            {daysByType.size === 0 ? (
-              <EmptyState title="Aucun congé approuvé sur la période" />
+            {joursParType.size === 0 ? (
+              <EmptyState
+                icon={CalendarCheck}
+                title="Aucun congé approuvé sur la période"
+                description="Élargissez la période pour voir les congés validés."
+              />
             ) : (
               (types ?? [])
-                .filter((t) => daysByType.has(t.id))
+                .filter((t) => joursParType.has(t.id))
                 .map((t) => {
-                  const days = daysByType.get(t.id) ?? 0;
+                  const jours = joursParType.get(t.id) ?? 0;
                   return (
                     <div key={t.id}>
                       <div className="mb-1 flex items-center justify-between text-sm">
                         <span className="text-content">{t.name}</span>
-                        <span className="font-medium text-content">
-                          {days.toFixed(1).replace(".", ",")} j
+                        <span className="font-medium tabular-nums text-content">
+                          {jours.toFixed(1).replace(".", ",")} j
                         </span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-surface-muted">
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${(days / maxTypeDays) * 100}%`,
+                            width: `${(jours / maxType) * 100}%`,
                             backgroundColor: t.color,
                           }}
                         />
@@ -320,20 +437,26 @@ export default async function RapportsPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Anomalies de pointage</CardTitle>
-            <CardDescription>
-              Sessions signalées, ou écart défavorable supérieur à 2 h
-            </CardDescription>
+            <div>
+              <CardTitle>Anomalies de pointage</CardTitle>
+              <CardDescription>
+                Sessions signalées, ou écart défavorable supérieur à 2 h
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             {anomalies.length === 0 ? (
               <EmptyState
+                icon={UserCheck}
                 title="Aucune anomalie"
                 description="Les pointages de la période sont cohérents."
               />
             ) : (
               <p className="text-sm text-content">
-                {anomalies.length} session(s) à examiner sur {sessionCount}.
+                <strong className="text-content">
+                  {anomalies.length} session(s)
+                </strong>{" "}
+                à examiner sur {nbSessions}.
               </p>
             )}
           </CardContent>
@@ -342,69 +465,27 @@ export default async function RapportsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Détail par collaborateur</CardTitle>
-          <CardDescription>
-            Temps effectif, congés approuvés et solde restant sur la période
-          </CardDescription>
+          <div>
+            <CardTitle>Détail par collaborateur</CardTitle>
+            <CardDescription>
+              Temps effectif, congés approuvés et solde restant sur la période
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
-          {activeMembers.length === 0 ? (
-            <EmptyState title="Aucun collaborateur actif" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
-                    <th className="py-2 pr-3 font-medium">Collaborateur</th>
-                    <th className="py-2 pr-3 font-medium">Rôle</th>
-                    <th className="py-2 pr-3 font-medium">Heures</th>
-                    <th className="py-2 pr-3 font-medium">Congés pris</th>
-                    <th className="py-2 pr-3 font-medium">Solde restant</th>
-                    <th className="py-2 font-medium">Statut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeMembers.map((m) => {
-                    const p = profileById.get(m.user_id);
-                    const available = availableByMember.get(m.id) ?? 0;
-                    return (
-                      <tr
-                        key={m.id}
-                        className="border-b border-border last:border-0"
-                      >
-                        <td className="py-2.5 pr-3">
-                          <p className="font-medium text-content">
-                            {p?.full_name ?? nameOf(m.id)}
-                          </p>
-                          <p className="text-xs text-content-muted">{p?.email}</p>
-                        </td>
-                        <td className="py-2.5 pr-3 text-content-muted">
-                          {ROLE_LABELS[m.role] ?? m.role}
-                        </td>
-                        <td className="py-2.5 pr-3 font-medium text-content">
-                          {formatMinutes(minutesByMember.get(m.id) ?? 0)}
-                        </td>
-                        <td className="py-2.5 pr-3 text-content-muted">
-                          {(daysByMember.get(m.id) ?? 0)
-                            .toFixed(1)
-                            .replace(".", ",")}{" "}
-                          j
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <Badge tone={available > 0 ? "brand" : "neutral"}>
-                            {available.toFixed(2).replace(".", ",")} j
-                          </Badge>
-                        </td>
-                        <td className="py-2.5">
-                          <Badge tone="success">Actif</Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable
+            columns={colonnes}
+            rows={details}
+            rowKey={(l) => l.id}
+            caption="Temps, congés et solde par collaborateur actif"
+            empty={
+              <EmptyState
+                icon={Users}
+                title="Aucun collaborateur actif"
+                description="Invitez des collaborateurs depuis l'écran Équipe."
+              />
+            }
+          />
         </CardContent>
       </Card>
 
