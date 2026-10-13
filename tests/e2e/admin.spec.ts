@@ -173,12 +173,13 @@ test.describe("Administrateur", () => {
     await page.locator("#recherche").fill(fragment);
     await expect(page).toHaveURL(new RegExp(`q=${fragment}`));
 
+    // L'URL change AVANT que le serveur ait répondu : compter les lignes à cet
+    // instant lit un état intermédiaire. On attend le rendu filtré.
+    await expect(page.getByText(/résultat\(s\) pour/)).toBeVisible();
+
     const filtres = await page.locator("table tbody tr").count();
     expect(filtres).toBeGreaterThan(0);
     expect(filtres).toBeLessThanOrEqual(total);
-    await expect(
-      page.getByText(/\d+ résultat\(s\) pour/)
-    ).toBeVisible();
   });
 
   test("les validations listent les files en attente", async ({ page }) => {

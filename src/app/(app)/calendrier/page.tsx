@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -10,50 +11,33 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { cn, formatDate } from "@/lib/utils";
 import type { Views } from "@/types/database";
+import {
+  addDays,
+  debutSemaine,
+  decouperEnSemaines,
+  fondBarre,
+  iso,
+  parseISO,
+  type AbsenceMin,
+} from "./segments";
 
 export const metadata: Metadata = { title: "Calendrier d'équipe" };
 
 // Page bloquante : elle lit la session et la date courante à chaque requête.
 export const instant = false;
 
-type Absence = Views<"team_absences">;
-
-const DAY_NAMES = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-const MONTH_NAMES = [
+const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const MOIS = [
   "janvier", "février", "mars", "avril", "mai", "juin",
   "juillet", "août", "septembre", "octobre", "novembre", "décembre",
 ];
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-const parseISO = (s: string) => new Date(s + "T00:00:00Z");
-const addDays = (d: Date, n: number) => {
-  const x = new Date(d);
-  x.setUTCDate(x.getUTCDate() + n);
-  return x;
-};
-const startOfWeek = (d: Date) => {
-  const dow = d.getUTCDay();
-  return addDays(d, dow === 0 ? -6 : 1 - dow);
-};
-
-/** Indexe les absences par jour couvert. */
-function indexByDay(absences: Absence[]): Map<string, Absence[]> {
-  const map = new Map<string, Absence[]>();
-  for (const a of absences) {
-    const start = parseISO(a.start_date);
-    const end = parseISO(a.end_date);
-    for (let d = start; d <= end; d = addDays(d, 1)) {
-      const key = iso(d);
-      const list = map.get(key);
-      if (list) list.push(a);
-      else map.set(key, [a]);
-    }
-  }
-  return map;
-}
+type Absence = Views<"team_absences">;
 
 export default async function CalendrierPage({
   searchParams,
@@ -68,7 +52,6 @@ export default async function CalendrierPage({
       ? parseISO(refParam)
       : parseISO(iso(new Date()));
 
-  // Bornes de la période affichée
   let rangeStart: Date;
   let rangeEnd: Date;
   let title: string;
@@ -76,19 +59,19 @@ export default async function CalendrierPage({
   let next: Date;
 
   if (vue === "semaine") {
-    rangeStart = startOfWeek(ref);
+    rangeStart = debutSemaine(ref);
     rangeEnd = addDays(rangeStart, 6);
     prev = addDays(rangeStart, -7);
     next = addDays(rangeStart, 7);
     title = `Semaine du ${formatDate(iso(rangeStart))} au ${formatDate(iso(rangeEnd))}`;
   } else {
-    const first = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
-    const last = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 0));
-    rangeStart = startOfWeek(first);
-    rangeEnd = addDays(startOfWeek(last), 6);
+    const premier = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
+    const dernier = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 0));
+    rangeStart = debutSemaine(premier);
+    rangeEnd = addDays(debutSemaine(dernier), 6);
     prev = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() - 1, 1));
     next = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 1));
-    title = `${MONTH_NAMES[first.getUTCMonth()]} ${first.getUTCFullYear()}`;
+    title = `${MOIS[premier.getUTCMonth()]} ${premier.getUTCFullYear()}`;
   }
 
   const supabase = await createClient();
@@ -99,17 +82,20 @@ export default async function CalendrierPage({
     .lte("start_date", iso(rangeEnd))
     .order("start_date");
 
-  const byDay = indexByDay(absences ?? []);
+  const liste = (absences ?? []) as Absence[];
+  const semaines = decouperEnSemaines(liste as AbsenceMin[], rangeStart, rangeEnd);
   const todayISO = iso(new Date());
-  const weekParam = iso(rangeStart);
 
-  const switcher = (
+  const semaineParam = iso(rangeStart);
+
+  const navigation = (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex rounded-control bg-surface-muted p-0.5 ring-1 ring-border dark:bg-white/5">
         {(["mois", "semaine"] as const).map((v) => (
           <Link
             key={v}
-            href={`/calendrier?vue=${v}&date=${weekParam}`}
+            href={`/calendrier?vue=${v}&date=${semaineParam}`}
+            aria-current={vue === v ? "page" : undefined}
             className={cn(
               "rounded-[6px] px-3 py-1 text-sm font-medium capitalize transition-colors",
               vue === v
@@ -121,122 +107,127 @@ export default async function CalendrierPage({
           </Link>
         ))}
       </div>
+
       <div className="flex items-center gap-1">
         <Link
           href={`/calendrier?vue=${vue}&date=${iso(prev)}`}
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-content-muted hover:text-content"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
           aria-label="Période précédente"
         >
-          ←
+          <ChevronLeft className="size-4" aria-hidden="true" />
         </Link>
         <Link
           href={`/calendrier?vue=${vue}&date=${todayISO}`}
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-content-muted hover:text-content"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           Aujourd&apos;hui
         </Link>
         <Link
           href={`/calendrier?vue=${vue}&date=${iso(next)}`}
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-content-muted hover:text-content"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
           aria-label="Période suivante"
         >
-          →
+          <ChevronRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
     </div>
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-content">
-            Calendrier d&apos;équipe
-          </h1>
-          <p className="mt-1 text-sm text-content-muted">
-            {title} · {absences?.length ?? 0} absence(s) approuvée(s)
-          </p>
-        </div>
-        {switcher}
-      </header>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <PageHeader
+        title="Calendrier d'équipe"
+        description={`${title} · ${liste.length} absence(s) approuvée(s)`}
+        actions={navigation}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Disponibilités</CardTitle>
-          <CardDescription>
-            Congés approuvés. Les motifs et justificatifs ne sont jamais
-            affichés ici.
-          </CardDescription>
+          <div>
+            <CardTitle>Disponibilités</CardTitle>
+            <CardDescription>
+              Congés approuvés. Les motifs et justificatifs ne sont jamais
+              affichés ici.
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
-          {(absences ?? []).length === 0 ? (
+        <CardContent className="space-y-4">
+          {liste.length === 0 && (
             <EmptyState
+              icon={CalendarOff}
               title="Aucune absence sur cette période"
-              description="Toute l'équipe est disponible."
+              description="Toute l'équipe est disponible. Le calendrier reste affiché pour vous situer."
             />
-          ) : vue === "mois" ? (
-            <div className="overflow-x-auto">
-              <div className="grid min-w-[42rem] grid-cols-7 gap-1">
-                {DAY_NAMES.map((d) => (
+          )}
+
+          {vue === "mois" ? (
+            <div className="min-w-0 space-y-2">
+              <div className="grid grid-cols-7 gap-x-1">
+                {JOURS.map((j) => (
                   <div
-                    key={d}
+                    key={j}
                     className="pb-1 text-center text-xs font-medium uppercase tracking-wide text-content-subtle"
                   >
-                    {d}
+                    {j}
                   </div>
                 ))}
-                {Array.from(
-                  { length: Math.round((+rangeEnd - +rangeStart) / 86400000) + 1 },
-                  (_, i) => addDays(rangeStart, i)
-                ).map((day) => {
-                  const key = iso(day);
-                  const inMonth = day.getUTCMonth() === ref.getUTCMonth();
-                  const dayAbsences = byDay.get(key) ?? [];
-                  return (
-                    <div
-                      key={key}
-                      className={cn(
-                        "min-h-20 rounded-lg border p-1.5",
-                        key === todayISO
-                          ? "border-blue-400 bg-blue-50"
-                          : "border-border",
-                        !inMonth && "opacity-40"
-                      )}
-                    >
-                      <p
-                        className={cn(
-                          "mb-1 text-xs",
-                          key === todayISO
-                            ? "font-semibold text-blue-700"
-                            : "text-content-subtle"
-                        )}
-                      >
-                        {day.getUTCDate()}
-                      </p>
-                      <div className="space-y-1">
-                        {dayAbsences.slice(0, 3).map((a, i) => (
-                          <div
-                            key={`${a.member_id}-${i}`}
-                            className="truncate rounded px-1 py-0.5 text-[11px] leading-tight"
-                            style={{
-                              backgroundColor: `${a.leave_type_color}1a`,
-                              color: a.leave_type_color,
-                            }}
-                            title={`${a.member_name} — ${a.leave_type_name}`}
-                          >
-                            {a.member_name}
-                          </div>
-                        ))}
-                        {dayAbsences.length > 3 && (
-                          <p className="px-1 text-[11px] text-content-subtle">
-                            +{dayAbsences.length - 3}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
+
+              {semaines.map((s) => (
+                <div
+                  key={iso(s.debut)}
+                  className="grid grid-cols-7 gap-x-1 gap-y-1 rounded-tile border border-border p-1.5"
+                  style={{
+                    gridTemplateRows: `auto repeat(${Math.max(s.pistes, 1)}, 1.25rem)`,
+                  }}
+                >
+                  {s.jours.map((jour) => {
+                    const cle = iso(jour);
+                    const horsMois = jour.getUTCMonth() !== ref.getUTCMonth();
+                    const aujourdHui = cle === todayISO;
+                    return (
+                      <div key={cle} className="min-w-0 px-0.5">
+                        <span
+                          className={cn(
+                            "inline-flex size-5 items-center justify-center rounded-full text-xs tabular-nums",
+                            aujourdHui
+                              ? "bg-brand-strong font-semibold text-white"
+                              : horsMois
+                                ? "text-content-subtle opacity-50"
+                                : "text-content-subtle"
+                          )}
+                        >
+                          {jour.getUTCDate()}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {s.segments.map((seg, i) => (
+                    <div
+                      key={`${seg.absence.member_id}-${seg.absence.start_date}-${i}`}
+                      style={{
+                        gridColumn: `${seg.colStart + 1} / ${seg.colEnd + 2}`,
+                        gridRow: seg.piste + 2,
+                        backgroundColor: fondBarre(seg.absence.leave_type_color),
+                        color: seg.absence.leave_type_color,
+                      }}
+                      className={cn(
+                        "flex min-w-0 items-center px-1.5 text-[11px] font-medium leading-5",
+                        !seg.suiteAvant && "rounded-l",
+                        !seg.suiteApres && "rounded-r"
+                      )}
+                      title={`${seg.absence.member_name} — ${seg.absence.leave_type_name} (${formatDate(seg.absence.start_date)} → ${formatDate(seg.absence.end_date)})`}
+                    >
+                      {/* Le nom n'apparaît qu'au début de la barre : répété sur
+                          chaque segment, il deviendrait illisible. */}
+                      {!seg.suiteAvant && (
+                        <span className="truncate">{seg.absence.member_name}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -248,10 +239,18 @@ export default async function CalendrierPage({
                     </th>
                     {Array.from({ length: 7 }, (_, i) => {
                       const d = addDays(rangeStart, i);
+                      const aujourdHui = iso(d) === todayISO;
                       return (
                         <th key={i} className="px-1 py-2 text-center font-medium">
-                          {DAY_NAMES[i]}
-                          <span className="ml-1 font-normal text-content-subtle">
+                          <span className="block">{JOURS[i]}</span>
+                          <span
+                            className={cn(
+                              "mt-0.5 inline-flex size-5 items-center justify-center rounded-full tabular-nums",
+                              aujourdHui
+                                ? "bg-brand-strong font-semibold text-white"
+                                : "font-normal text-content-subtle"
+                            )}
+                          >
                             {d.getUTCDate()}
                           </span>
                         </th>
@@ -260,70 +259,75 @@ export default async function CalendrierPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.from(
-                    new Set((absences ?? []).map((a) => a.member_id))
-                  ).map((memberId) => {
-                    const mine = (absences ?? []).filter(
-                      (a) => a.member_id === memberId
-                    );
-                    return (
-                      <tr
-                        key={memberId}
-                        className="border-b border-border last:border-0"
-                      >
-                        <td className="py-2 pr-3 font-medium text-content">
-                          {mine[0].member_name}
-                        </td>
-                        {Array.from({ length: 7 }, (_, i) => {
-                          const key = iso(addDays(rangeStart, i));
-                          const hit = (byDay.get(key) ?? []).find(
-                            (a) => a.member_id === memberId
-                          );
-                          return (
-                            <td key={i} className="px-1 py-2 text-center">
-                              {hit ? (
-                                <span
-                                  className="inline-block h-5 w-full rounded"
-                                  style={{ backgroundColor: hit.leave_type_color }}
-                                  title={`${hit.leave_type_name}${
-                                    hit.start_date === key && hit.start_half
-                                      ? " (demi-journée)"
-                                      : ""
-                                  }`}
-                                />
-                              ) : (
-                                <span className="inline-block h-5 w-full rounded bg-surface-muted" />
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                  {Array.from(new Set(liste.map((a) => a.member_id))).map(
+                    (memberId) => {
+                      const miennes = liste.filter((a) => a.member_id === memberId);
+                      return (
+                        <tr key={memberId} className="border-b border-border last:border-0">
+                          <td className="py-2 pr-3 font-medium text-content">
+                            {miennes[0].member_name}
+                          </td>
+                          {Array.from({ length: 7 }, (_, i) => {
+                            const cle = iso(addDays(rangeStart, i));
+                            const jour = miennes.find(
+                              (a) => a.start_date <= cle && a.end_date >= cle
+                            );
+                            return (
+                              <td key={i} className="px-1 py-2">
+                                {jour ? (
+                                  <span
+                                    className="block h-5 rounded"
+                                    style={{
+                                      backgroundColor: jour.leave_type_color,
+                                    }}
+                                    title={`${jour.leave_type_name} (${formatDate(jour.start_date)} → ${formatDate(jour.end_date)})`}
+                                  />
+                                ) : (
+                                  <span className="block h-5 rounded bg-surface-muted" />
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    }
+                  )}
                 </tbody>
               </table>
+
+              {liste.length === 0 && (
+                <p className="py-4 text-center text-sm text-content-muted">
+                  Aucune absence cette semaine.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {(absences ?? []).length > 0 && (
+      {liste.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Détail des absences</CardTitle>
-            <CardDescription>Type et durée, sans motif</CardDescription>
+            <div>
+              <CardTitle>Détail des absences</CardTitle>
+              <CardDescription>
+                Type et durée, sans motif — les informations sensibles restent
+                réservées aux personnes habilitées
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-border">
-              {(absences ?? []).map((a, i) => (
+              {liste.map((a, i) => (
                 <li
                   key={`${a.member_id}-${a.start_date}-${i}`}
                   className="flex flex-wrap items-center justify-between gap-2 py-2"
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      className="size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: a.leave_type_color }}
+                      aria-hidden="true"
                     />
                     <span className="text-sm font-medium text-content">
                       {a.member_name}

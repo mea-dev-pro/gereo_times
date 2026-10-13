@@ -149,6 +149,23 @@ test.describe("Employé", () => {
     await expect(page.getByText(/Semaine du/)).toBeVisible();
   });
 
+  test("le calendrier garde sa grille même sans absence", async ({ page }) => {
+    await page.goto("/calendrier?vue=mois");
+
+    // Les sept colonnes de jours, quel que soit le mois.
+    for (const jour of ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]) {
+      await expect(page.getByText(jour, { exact: true }).first()).toBeVisible();
+    }
+
+    // Le calendrier reste affiché quand il n'y a rien : sa disparition
+    // supprimait le repère temporel au lieu de simplement signaler l'absence.
+    const semaines = await page
+      .locator("main [style*='grid-template-rows']")
+      .count();
+    expect(semaines).toBeGreaterThanOrEqual(4);
+    expect(semaines).toBeLessThanOrEqual(6);
+  });
+
   test("la confidentialité des motifs est respectée dans le calendrier", async ({
     page,
   }) => {
