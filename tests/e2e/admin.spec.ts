@@ -104,6 +104,24 @@ test.describe("Administrateur", () => {
     }
   });
 
+  test("les validations affichent les indicateurs de la file", async ({
+    page,
+  }) => {
+    await page.goto("/validations");
+    await expect(
+      page.getByRole("heading", { name: "Validations" })
+    ).toBeVisible();
+
+    // Les trois indicateurs qui résument la charge d'un manager.
+    for (const libelle of [
+      "À traiter",
+      "Congés en attente",
+      "Plus ancienne demande",
+    ]) {
+      await expect(page.getByText(libelle, { exact: true })).toBeVisible();
+    }
+  });
+
   test("le fil d'activité est consultable", async ({ page }) => {
     await page.goto("/notifications");
     await expect(
