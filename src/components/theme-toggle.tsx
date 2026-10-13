@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Choice = "light" | "dark" | "system";
+
+const CHOIX: readonly string[] = ["light", "dark", "system"];
 
 const OPTIONS: { value: Choice; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Thème clair", icon: Sun },
@@ -15,16 +17,41 @@ const OPTIONS: { value: Choice; label: string; icon: typeof Sun }[] = [
 /**
  * Bascule de thème à trois états.
  *
- * L'état initial est lu depuis le DOM, et non depuis le stockage : c'est le
- * script en ligne du layout qui a déjà tranché avant peinture. Lire la même
- * source évite tout désaccord entre l'affichage et le bouton.
+ * Le choix vit en trois endroits qui doivent rester d'accord : la classe `dark`
+ * posée sur <html> par le script en ligne du layout (avant peinture), la clé
+ * « theme » du stockage local, et le bouton. On l'expose donc comme un petit
+ * magasin externe lu par `useSyncExternalStore` :
+ *   - `lireChoix()` est la seule source de vérité (clé absente = « système ») ;
+ *   - l'instantané serveur vaut `null`, donc aucun état actif avant
+ *     l'hydratation : pas d'écart entre le HTML du serveur et celui du
+ *     navigateur ;
+ *   - `applique()` écrit dans le document et le stockage, puis publie.
  */
-export function ThemeToggle() {
-  const [choice, setChoice] = useState<Choice | null>(null);
+const abonnes = new Set<() => void>();
 
-  useEffect(() => {
-    setChoice((localStorage.getItem("theme") as Choice | null) ?? "system");
-  }, []);
+function souscrire(notifier: () => void) {
+  abonnes.add(notifier);
+  return () => {
+    abonnes.delete(notifier);
+  };
+}
+
+function lireChoix(): Choice {
+  try {
+    const brut = localStorage.getItem("theme");
+    return CHOIX.includes(brut ?? "") ? (brut as Choice) : "system";
+  } catch {
+    // Navigation privée : le stockage est inaccessible, l'affichage reste juste.
+    return "system";
+  }
+}
+
+function publier() {
+  for (const notifier of abonnes) notifier();
+}
+
+export function ThemeToggle() {
+  const choice = useSyncExternalStore(souscrire, lireChoix, () => null);
 
   function applique(next: Choice) {
     const sombre =
@@ -41,7 +68,7 @@ export function ThemeToggle() {
       // Navigation privée : le choix ne survivra pas, l'affichage reste correct.
     }
 
-    setChoice(next);
+    publier();
   }
 
   return (

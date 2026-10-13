@@ -58,7 +58,7 @@ test.describe("Thème de l'interface", () => {
           0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
 
         const texte = versRgb(getComputedStyle(el).color);
-        let fond = versRgb(getComputedStyle(document.body).backgroundColor);
+        const fond = versRgb(getComputedStyle(document.body).backgroundColor);
 
         const a = lum(texte);
         const b = lum(fond);

@@ -36,6 +36,17 @@ export function formatDateTime(value: string | null | undefined): string {
   }).format(date);
 }
 
+/**
+ * Nombre de jours entiers écoulés depuis un horodatage ISO.
+ *
+ * Lit l'heure courante : à réserver au serveur (page, action, route), jamais
+ * pendant le rendu d'un composant client. Les pages qui l'utilisent exportent
+ * `instant = false`, elles sont donc rendues à chaque requête.
+ */
+export function joursDepuis(iso: string): number {
+  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000));
+}
+
 /** Nombre de jours ouvrés entre deux dates incluses, hors week-end. */
 export function workingDaysBetween(startISO: string, endISO: string): number {
   const start = new Date(startISO + "T00:00:00Z");

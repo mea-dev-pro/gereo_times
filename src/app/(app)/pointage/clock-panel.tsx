@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { Coffee, LogIn, LogOut, Play, Timer } from "lucide-react";
 import { clockIn, clockOut, endBreak, startBreak } from "@/lib/actions/time";
 import type { ActionState } from "@/lib/auth/actions";
@@ -53,6 +59,41 @@ function heure(iso: string): string {
   });
 }
 
+/**
+ * Secondes écoulées depuis `depart`, rafraîchies chaque seconde ; `null` tant
+ * que le point de départ est inconnu.
+ *
+ * `useSyncExternalStore` plutôt qu'un effet qui appelle `setState` : la valeur
+ * vient d'une horloge extérieure à React. L'instantané serveur vaut `null`, donc
+ * le HTML rendu par le serveur ne contient jamais de compteur — sinon le
+ * navigateur et le serveur ne calculeraient pas la même seconde et
+ * l'hydratation protesterait. Le minuteur n'existe que tant que quelqu'un
+ * écoute, et il disparaît avec le dernier abonné.
+ */
+function useSecondesEcoulees(depart: string | null): number | null {
+  const souscrire = useCallback(
+    (notifier: () => void) => {
+      if (!depart) return () => {};
+      const minuteur = setInterval(notifier, 1000);
+      return () => clearInterval(minuteur);
+    },
+    [depart]
+  );
+
+  const lire = useCallback(
+    () =>
+      depart
+        ? Math.max(
+            0,
+            Math.floor((Date.now() - new Date(depart).getTime()) / 1000)
+          )
+        : null,
+    [depart]
+  );
+
+  return useSyncExternalStore(souscrire, lire, () => null);
+}
+
 export function ClockPanel({
   isOpen,
   isOnBreak,
@@ -77,42 +118,10 @@ export function ClockPanel({
   const { notifier } = useToast();
   const dialogue = useRef<HTMLDialogElement>(null);
 
-  // Compteurs vivants. Valeur nulle au premier rendu : le serveur et le
-  // navigateur ne calculeraient pas la même seconde, ce qui déclencherait une
-  // alerte d'hydratation. On réserve la place, puis on remplit après montage.
-  const [ecoule, setEcoule] = useState<number | null>(null);
-  const [pauseEcoulee, setPauseEcoulee] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!clockedInAt) {
-      setEcoule(null);
-      return;
-    }
-    const maj = () =>
-      setEcoule(
-        Math.max(0, Math.floor((Date.now() - new Date(clockedInAt).getTime()) / 1000))
-      );
-    maj();
-    const minuteur = setInterval(maj, 1000);
-    return () => clearInterval(minuteur);
-  }, [clockedInAt]);
-
-  useEffect(() => {
-    if (!isOnBreak || !breakStartedAt) {
-      setPauseEcoulee(null);
-      return;
-    }
-    const maj = () =>
-      setPauseEcoulee(
-        Math.max(
-          0,
-          Math.floor((Date.now() - new Date(breakStartedAt).getTime()) / 1000)
-        )
-      );
-    maj();
-    const minuteur = setInterval(maj, 1000);
-    return () => clearInterval(minuteur);
-  }, [isOnBreak, breakStartedAt]);
+  // Compteurs vivants : voir `useSecondesEcoulees`, qui garantit un premier
+  // rendu sans valeur pour ne pas diverger de l'hydratation.
+  const ecoule = useSecondesEcoulees(clockedInAt);
+  const pauseEcoulee = useSecondesEcoulees(isOnBreak ? breakStartedAt : null);
 
   // Temps effectif du jour = sessions clôturées + session en cours, pauses
   // déduites. Le calcul reste faux tant que les compteurs ne sont pas montés,

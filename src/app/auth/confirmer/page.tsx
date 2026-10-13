@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -27,6 +27,27 @@ function readHash(): URLSearchParams | null {
   return raw ? new URLSearchParams(raw) : null;
 }
 
+/** Message porté par le fragment d'URL, s'il annonce un échec. */
+function messageErreurFragment(): string | null {
+  const hash = readHash();
+  if (!hash) return null;
+
+  if (hash.get("error_code") === "otp_expired") {
+    return "Ce lien a déjà été utilisé ou a expiré. Demandez une nouvelle invitation.";
+  }
+  if (hash.get("error_description")) {
+    return decodeURIComponent(hash.get("error_description") as string);
+  }
+  if (hash.get("error")) {
+    return "Ce lien n'est plus valide. Demandez une nouvelle invitation.";
+  }
+  return null;
+}
+
+/** Le fragment d'URL ne bouge pas sans rechargement : rien à observer. */
+const SANS_ABONNEMENT = () => () => {};
+const ERREUR_ABSENTE = () => null;
+
 async function adoptHashSession(supabase: SupabaseClient): Promise<boolean> {
   const hash = readHash();
   if (!hash) return false;
@@ -48,11 +69,24 @@ async function adoptHashSession(supabase: SupabaseClient): Promise<boolean> {
 
 export default function ConfirmerPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [erreurSession, setErreurSession] = useState<string | null>(null);
+
+  // L'erreur du fragment est décidée par le serveur d'authentification : elle
+  // est donc lue comme une source externe, avec un instantané nul côté serveur,
+  // sinon le HTML du serveur (sans fragment) divergeait de celui du navigateur.
+  const erreurFragment = useSyncExternalStore(
+    SANS_ABONNEMENT,
+    messageErreurFragment,
+    ERREUR_ABSENTE
+  );
+  const error = erreurFragment ?? erreurSession;
 
   useEffect(() => {
     const supabase = createClient();
     let finished = false;
+
+    // Un fragment porteur d'erreur prime : inutile d'ouvrir une session.
+    if (messageErreurFragment()) return;
 
     const go = () => {
       if (finished) return;
@@ -60,23 +94,6 @@ export default function ConfirmerPage() {
       router.replace("/organisation/nouvelle");
       router.refresh();
     };
-
-    // Le lien renvoyé par Supabase peut porter l'erreur dans le fragment.
-    const hash = readHash();
-    const hashError =
-      hash?.get("error_code") === "otp_expired"
-        ? "Ce lien a déjà été utilisé ou a expiré. Demandez une nouvelle invitation."
-        : hash?.get("error_description")
-          ? decodeURIComponent(hash.get("error_description") as string)
-          : hash?.get("error")
-            ? "Ce lien n'est plus valide. Demandez une nouvelle invitation."
-            : null;
-
-    if (hashError) {
-      setError(hashError);
-      finished = true;
-      return;
-    }
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -102,7 +119,7 @@ export default function ConfirmerPage() {
       }
 
       if (!finished) {
-        setError(
+        setErreurSession(
           "Ce lien est invalide ou a expiré. Demandez une nouvelle invitation à votre administrateur."
         );
       }

@@ -364,6 +364,9 @@ export default async function RapportsPage({
             >
               Export congés (CSV)
             </a>
+            {/* Téléchargement de fichier, pas une navigation : <Link> déclencherait
+                un rendu client et perdrait le téléchargement. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/export/soldes"
               className={buttonVariants({ variant: "outline", size: "sm" })}

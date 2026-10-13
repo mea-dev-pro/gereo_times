@@ -15,7 +15,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/page-header";
-import { formatDate, formatDateTime, ROLE_LABELS } from "@/lib/utils";
+import { formatDate, formatDateTime, joursDepuis, ROLE_LABELS } from "@/lib/utils";
 import { DecisionPanel } from "./decision-panel";
 
 export const metadata: Metadata = { title: "Validations" };
@@ -116,14 +116,7 @@ export default async function ValidationsPage() {
   const nbConges = (requests ?? []).length;
   const nbCorrections = (adjustments ?? []).length;
   const plusAncienne = (requests ?? [])[0]?.submitted_at ?? null;
-  const ancienneteJours = plusAncienne
-    ? Math.max(
-        0,
-        Math.round(
-          (Date.now() - new Date(plusAncienne).getTime()) / 86400000
-        )
-      )
-    : 0;
+  const ancienneteJours = plusAncienne ? joursDepuis(plusAncienne) : 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">

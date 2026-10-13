@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { estimateLeaveDays, submitLeaveRequest } from "@/lib/actions/leave";
 import type { ActionState } from "@/lib/auth/actions";
 import type { HalfDay } from "@/types/database";
@@ -30,23 +30,43 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  useEffect(() => {
-    if (!leaveTypeId || !startDate || !endDate || endDate < startDate) {
+  /**
+   * Recalcule les jours décomptés pour un jeu de valeurs donné.
+   *
+   * Appelée depuis les gestionnaires de changement, et non depuis un effet qui
+   * surveillerait les états : la valeur change parce que l'utilisateur a
+   * modifié un champ, pas parce qu'un état a bougé. Un effet rejouerait le
+   * calcul (une requête au serveur) à chaque rendu intermédiaire.
+   */
+  function reevaluer(prochain: {
+    typeId?: string;
+    debut?: string;
+    fin?: string;
+    demiDebut?: string;
+    demiFin?: string;
+  }) {
+    const typeId = prochain.typeId ?? leaveTypeId;
+    const debut = prochain.debut ?? startDate;
+    const fin = prochain.fin ?? endDate;
+    const demiDebut = prochain.demiDebut ?? startHalf;
+    const demiFin = prochain.demiFin ?? endHalf;
+
+    if (!typeId || !debut || !fin || fin < debut) {
       setDays(null);
       return;
     }
+
     startEstimate(async () => {
       const res = await estimateLeaveDays(
-        leaveTypeId,
-        startDate,
-        endDate,
-        (startHalf || null) as HalfDay | null,
-        (endHalf || null) as HalfDay | null
+        typeId,
+        debut,
+        fin,
+        (demiDebut || null) as HalfDay | null,
+        (demiFin || null) as HalfDay | null
       );
       setDays(res.days ?? null);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leaveTypeId, startDate, endDate, startHalf, endHalf]);
+  }
 
   const selectedType = types.find((t) => t.id === leaveTypeId);
 
@@ -61,7 +81,10 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
           id="leave_type_id"
           name="leave_type_id"
           value={leaveTypeId}
-          onChange={(e) => setLeaveTypeId(e.target.value)}
+          onChange={(e) => {
+            setLeaveTypeId(e.target.value);
+            reevaluer({ typeId: e.target.value });
+          }}
           required
         >
           {types.map((t) => (
@@ -83,8 +106,11 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
             min={today}
             value={startDate}
             onChange={(e) => {
-              setStartDate(e.target.value);
-              if (!endDate || e.target.value > endDate) setEndDate(e.target.value);
+              const debut = e.target.value;
+              const fin = !endDate || debut > endDate ? debut : endDate;
+              setStartDate(debut);
+              setEndDate(fin);
+              reevaluer({ debut, fin });
             }}
           />
         </div>
@@ -97,7 +123,10 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
             required
             min={startDate || today}
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              reevaluer({ fin: e.target.value });
+            }}
           />
         </div>
       </div>
@@ -109,7 +138,10 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
             id="start_half"
             name="start_half"
             value={startHalf}
-            onChange={(e) => setStartHalf(e.target.value)}
+            onChange={(e) => {
+              setStartHalf(e.target.value);
+              reevaluer({ demiDebut: e.target.value });
+            }}
           >
             <option value="">Journée complète</option>
             <option value="am">Matin uniquement</option>
@@ -122,7 +154,10 @@ export function LeaveRequestForm({ types }: { types: LeaveTypeOption[] }) {
             id="end_half"
             name="end_half"
             value={endHalf}
-            onChange={(e) => setEndHalf(e.target.value)}
+            onChange={(e) => {
+              setEndHalf(e.target.value);
+              reevaluer({ demiFin: e.target.value });
+            }}
           >
             <option value="">Journée complète</option>
             <option value="am">Matin uniquement</option>
