@@ -78,6 +78,24 @@ test.describe("Employé", () => {
     await expect(page.getByText("Congé annuel").first()).toBeVisible();
   });
 
+  test("les jours pointés ne peuvent pas dépasser une semaine", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Invariant : une semaine compte sept jours au plus. Le compteur a déjà
+    // affiché « 8 jour(s) » parce qu'il comptait les SESSIONS (plusieurs par
+    // jour) au lieu des JOURNÉES distinctes.
+    const texte = await page
+      .getByText(/jour\(s\) pointé\(s\)/)
+      .first()
+      .innerText();
+    const nombre = Number(texte.match(/(\d+)\s+jour/)?.[1] ?? "0");
+
+    expect(Number.isFinite(nombre)).toBe(true);
+    expect(nombre).toBeLessThanOrEqual(7);
+  });
+
   test("l'estimation des jours ouvrés se met à jour à la saisie", async ({
     page,
   }) => {

@@ -1,4 +1,12 @@
 import Link from "next/link";
+import {
+  CalendarDays,
+  CalendarPlus,
+  ClipboardCheck,
+  Clock,
+  Timer,
+  TrendingUp,
+} from "lucide-react";
 import { canManage, requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,8 +16,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge, StatusBadge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard, type StatTint } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatMinutes } from "@/lib/utils";
 
 // Page bloquante : elle lit la session et l'heure courante à chaque requête.
@@ -39,7 +51,8 @@ export default async function DashboardPage() {
 
   const memberId = session.membership.id;
   const orgId = session.organization.id;
-  const week = weekBounds(new Date());
+  const semaine = weekBounds(new Date());
+  const peutValider = canManage(session.membership.role);
 
   const [
     { data: balances },
@@ -65,8 +78,8 @@ export default async function DashboardPage() {
       .from("time_entries")
       .select("*")
       .eq("member_id", memberId)
-      .gte("work_date", week.monday)
-      .lte("work_date", week.sunday)
+      .gte("work_date", semaine.monday)
+      .lte("work_date", semaine.sunday)
       .order("work_date"),
     supabase
       .from("leave_requests")
@@ -80,14 +93,14 @@ export default async function DashboardPage() {
       .eq("member_id", memberId)
       .is("clock_out", null)
       .maybeSingle(),
-    canManage(session.membership.role)
+    peutValider
       ? supabase
           .from("leave_requests")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", orgId)
           .eq("status", "pending")
       : Promise.resolve({ count: 0 }),
-    canManage(session.membership.role)
+    peutValider
       ? supabase
           .from("time_adjustments")
           .select("id", { count: "exact", head: true })
@@ -97,152 +110,179 @@ export default async function DashboardPage() {
   ]);
 
   const typeById = new Map((leaveTypes ?? []).map((t) => [t.id, t]));
-  const weekMinutes = (weekEntries ?? []).reduce(
-    (sum, e) => sum + (e.effective_minutes ?? 0),
+  const minutesSemaine = (weekEntries ?? []).reduce(
+    (somme, e) => somme + (e.effective_minutes ?? 0),
     0
   );
-  const totalAvailable = (balances ?? []).reduce(
-    (sum, b) => sum + Number(b.available_days),
+  // On compte les JOURNÉES distinctes, pas les pointages : plusieurs sessions
+  // peuvent tomber le même jour (pause, reprise), et afficher leur nombre
+  // donnerait un total supérieur à sept pour une semaine.
+  const joursPointes = new Set((weekEntries ?? []).map((e) => e.work_date)).size;
+  const joursDisponibles = (balances ?? []).reduce(
+    (somme, b) => somme + Number(b.available_days),
     0
   );
+  const aTraiter = (pendingLeaves ?? 0) + (pendingAdjustments ?? 0);
+  const soldes = (balances ?? []).filter(
+    (b) => Number(b.accrued_days) !== 0
+  );
+
+  // Chaque tuile porte une teinte qui a un sens : le violet signale une action
+  // possible, l'ambre une attention requise, la menthe une information neutre.
+  const tuiles: {
+    tint: StatTint;
+    icon: typeof Clock;
+    valeur: string;
+    libelle: string;
+    detail: string;
+  }[] = [
+    {
+      tint: "mint",
+      icon: Clock,
+      valeur: formatMinutes(minutesSemaine),
+      libelle: "Heures cette semaine",
+      detail: `${joursPointes} jour(s) pointé(s)`,
+    },
+    {
+      tint: "violet",
+      icon: CalendarDays,
+      valeur: `${joursDisponibles.toFixed(2).replace(".", ",")} j`,
+      libelle: "Congés disponibles",
+      detail: "tous types confondus",
+    },
+    {
+      tint: "sky",
+      icon: Timer,
+      valeur: openEntry ? "En cours" : "Arrêté",
+      libelle: "Statut de pointage",
+      detail: openEntry
+        ? `depuis ${formatDateTime(openEntry.clock_in)}`
+        : "aucune session ouverte",
+    },
+    {
+      tint: "amber",
+      icon: ClipboardCheck,
+      valeur: String(aTraiter),
+      libelle: "À traiter",
+      detail: peutValider
+        ? `${pendingLeaves ?? 0} congé(s), ${pendingAdjustments ?? 0} correction(s)`
+        : "réservé aux managers",
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-content">
-          Bonjour {session.profile.full_name?.split(" ")[0] ?? ""}
-        </h1>
-        <p className="mt-1 text-sm text-content-muted">
-          {session.organization.name} · semaine du {week.label}
-        </p>
-      </header>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <PageHeader
+        title={`Bonjour ${session.profile.full_name?.split(" ")[0] ?? ""}`}
+        description={`${session.organization.name} · semaine du ${semaine.label}`}
+        actions={
+          <>
+            <Link
+              href="/pointage"
+              className={buttonVariants({ variant: "brand" })}
+            >
+              <Timer className="size-4" aria-hidden="true" />
+              Pointer
+            </Link>
+            <Link
+              href="/conges"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <CalendarPlus className="size-4" aria-hidden="true" />
+              Demander un congé
+            </Link>
+          </>
+        }
+      />
 
-      {/* Indicateurs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
-              Heures cette semaine
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-content">
-              {formatMinutes(weekMinutes)}
-            </p>
-            <p className="mt-1 text-xs text-content-muted">
-              {(weekEntries ?? []).length} jour(s) pointé(s)
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
-              Congés disponibles
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-content">
-              {totalAvailable.toFixed(2).replace(".", ",")} j
-            </p>
-            <p className="mt-1 text-xs text-content-muted">tous types confondus</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
-              Statut de pointage
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-content">
-              {openEntry ? "En cours" : "Arrêté"}
-            </p>
-            <p className="mt-1 text-xs text-content-muted">
-              {openEntry
-                ? `depuis ${formatDateTime(openEntry.clock_in)}`
-                : "aucune session ouverte"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
-              À traiter
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-content">
-              {(pendingLeaves ?? 0) + (pendingAdjustments ?? 0)}
-            </p>
-            <p className="mt-1 text-xs text-content-muted">
-              {canManage(session.membership.role)
-                ? `${pendingLeaves ?? 0} congé(s), ${pendingAdjustments ?? 0} correction(s)`
-                : "réservé aux managers"}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {tuiles.map((t) => (
+          <StatCard
+            key={t.libelle}
+            tint={t.tint}
+            icon={t.icon}
+            value={t.valeur}
+            label={t.libelle}
+            hint={t.detail}
+          />
+        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Soldes */}
         <Card>
           <CardHeader>
-            <CardTitle>Mes soldes de congés</CardTitle>
-            <CardDescription>
-              Reconstruits à partir du journal des mouvements
-            </CardDescription>
+            <div>
+              <CardTitle>Mes soldes de congés</CardTitle>
+              <CardDescription>
+                Reconstruits à partir du journal des mouvements
+              </CardDescription>
+            </div>
+            <TrendingUp
+              className="size-4 shrink-0 text-content-subtle"
+              aria-hidden="true"
+            />
           </CardHeader>
           <CardContent className="space-y-3">
-            {(balances ?? []).filter((b) => Number(b.accrued_days) !== 0).length ===
-            0 ? (
+            {soldes.length === 0 ? (
               <EmptyState
+                icon={CalendarDays}
                 title="Aucun droit acquis"
                 description="Les soldes apparaîtront après la première acquisition."
               />
             ) : (
-              (balances ?? [])
-                .filter((b) => Number(b.accrued_days) !== 0)
-                .map((b) => {
-                  const type = typeById.get(b.leave_type_id);
-                  return (
-                    <div
-                      key={b.leave_type_id}
-                      className="flex items-center justify-between gap-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: type?.color ?? "#94a3b8" }}
-                        />
-                        <span className="truncate text-sm text-content">
-                          {type?.name ?? "Type inconnu"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="text-content-muted">
-                          {Number(b.used_days) > 0
-                            ? `${Number(b.used_days).toFixed(1)} j utilisés`
-                            : ""}
-                        </span>
-                        <Badge tone={Number(b.available_days) > 0 ? "brand" : "neutral"}>
-                          {Number(b.available_days).toFixed(2).replace(".", ",")} j
-                        </Badge>
-                      </div>
+              soldes.map((b) => {
+                const type = typeById.get(b.leave_type_id);
+                const dispo = Number(b.available_days);
+                return (
+                  <div
+                    key={b.leave_type_id}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: type?.color ?? "#94a3b8" }}
+                        aria-hidden="true"
+                      />
+                      <span className="truncate text-sm text-content">
+                        {type?.name ?? "Type inconnu"}
+                      </span>
                     </div>
-                  );
-                })
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-content-muted">
+                        {Number(b.used_days) > 0
+                          ? `${Number(b.used_days).toFixed(1)} j utilisés`
+                          : ""}
+                      </span>
+                      <Badge tone={dispo > 0 ? "brand" : "neutral"}>
+                        {dispo.toFixed(2).replace(".", ",")} j
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </CardContent>
         </Card>
 
-        {/* Dernières demandes */}
         <Card>
           <CardHeader>
-            <CardTitle>Mes dernières demandes</CardTitle>
-            <CardDescription>
-              <Link href="/conges" className="text-brand-strong hover:underline">
-                Voir toutes mes demandes
-              </Link>
-            </CardDescription>
+            <div>
+              <CardTitle>Mes dernières demandes</CardTitle>
+              <CardDescription>
+                <Link
+                  href="/conges"
+                  className="text-brand-strong hover:underline"
+                >
+                  Voir toutes mes demandes
+                </Link>
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {(myRequests ?? []).length === 0 ? (
               <EmptyState
+                icon={CalendarPlus}
                 title="Aucune demande"
                 description="Vos demandes de congé apparaîtront ici."
               />
