@@ -48,27 +48,57 @@ test.describe("Employé", () => {
     }
   });
 
-  test("le pointage enregistre une arrivée puis une sortie", async ({ page }) => {
+  test("le pointage enregistre une arrivée, une pause et une sortie", async ({
+    page,
+  }) => {
     await page.goto("/pointage");
     await expect(page.getByRole("heading", { name: "Pointage" })).toBeVisible();
 
-    // On repart d'un état propre si une session traîne
+    // On repart d'un état propre si une session traîne. Une session résiduelle
+    // est forcément très courte : la confirmation apparaît, on la valide.
     const boutonSortie = page.getByRole("button", { name: "Pointer la sortie" });
     if (await boutonSortie.isVisible().catch(() => false)) {
       await boutonSortie.click();
+      const confirmer = page.getByRole("button", { name: "Confirmer la sortie" });
+      if (await confirmer.isVisible().catch(() => false)) {
+        await confirmer.click();
+      }
       await expect(
         page.getByText("Pointage de sortie enregistré.")
       ).toBeVisible();
     }
 
+    await expect(page.getByText("Hors service")).toBeVisible();
+
+    // Arrivée
     await page.getByRole("button", { name: "Pointer l'arrivée" }).click();
     await expect(page.getByText("Pointage d'arrivée enregistré.")).toBeVisible();
-    await expect(
-      page.getByText(/Session ouverte depuis/)
-    ).toBeVisible();
+    await expect(page.getByText("En activité")).toBeVisible();
+    await expect(page.getByText(/Depuis \d{2}:\d{2}/)).toBeVisible();
 
+    // Pause et reprise
+    await page.getByRole("button", { name: "Démarrer une pause" }).click();
+    await expect(page.getByText("Pause démarrée.")).toBeVisible();
+    await expect(page.getByText("En pause")).toBeVisible();
+
+    await page.getByRole("button", { name: "Reprendre" }).click();
+    await expect(page.getByText("Pause terminée.")).toBeVisible();
+    await expect(page.getByText("En activité")).toBeVisible();
+
+    // Sortie : la session dure moins de cinq minutes, la confirmation doit
+    // apparaître. C'est le seul garde-fou contre un clic de trop.
     await boutonSortie.click();
+    const boite = page.getByRole("dialog");
+    await expect(
+      boite.getByRole("heading", { name: "Confirmer la sortie" })
+    ).toBeVisible();
+    // « Arrivée » existe aussi dans l'en-tête du tableau : on cible la fenêtre.
+    await expect(boite.getByText("Arrivée", { exact: true })).toBeVisible();
+    await expect(boite.getByText("Durée de la session")).toBeVisible();
+
+    await page.getByRole("button", { name: "Confirmer la sortie" }).click();
     await expect(page.getByText("Pointage de sortie enregistré.")).toBeVisible();
+    await expect(page.getByText("Hors service")).toBeVisible();
   });
 
   test("les congés affichent les soldes par type", async ({ page }) => {

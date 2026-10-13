@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CalendarClock, ClipboardList } from "lucide-react";
 import { requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,10 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge, StatusBadge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { FilterBar, FilterField } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatMinutes } from "@/lib/utils";
-import { ClockWidget } from "./clock-widget";
+import { ClockPanel } from "./clock-panel";
 import { AdjustmentForm, type AdjustableEntry } from "./adjustment-form";
 
 export const metadata: Metadata = { title: "Pointage" };
@@ -19,45 +25,106 @@ export const metadata: Metadata = { title: "Pointage" };
 // Page bloquante : elle lit la session et l'heure courante à chaque requête.
 export const instant = false;
 
-export default async function PointagePage() {
+type Pointage = {
+  id: string;
+  work_date: string;
+  clock_in: string;
+  clock_out: string | null;
+  break_minutes: number;
+  effective_minutes: number | null;
+  variance_minutes: number | null;
+  status: string;
+};
+
+function heureCourte(iso: string) {
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export default async function PointagePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ du?: string; au?: string }>;
+}) {
   const session = await requireSession();
   const supabase = await createClient();
   const memberId = session.membership.id;
 
-  const [{ data: openEntry }, { data: entries }, { data: adjustments }] =
-    await Promise.all([
-      supabase
-        .from("time_entries")
-        .select("*")
-        .eq("member_id", memberId)
-        .is("clock_out", null)
-        .maybeSingle(),
-      supabase
-        .from("time_entries")
-        .select("*")
-        .eq("member_id", memberId)
-        .order("work_date", { ascending: false })
-        .limit(30),
-      supabase
-        .from("time_adjustments")
-        .select("*")
-        .eq("member_id", memberId)
-        .order("created_at", { ascending: false })
-        .limit(10),
-    ]);
+  const { du, au } = await searchParams;
 
-  let isOnBreak = false;
+  const { data: openEntry } = await supabase
+    .from("time_entries")
+    .select("*")
+    .eq("member_id", memberId)
+    .is("clock_out", null)
+    .maybeSingle();
+
+  let breakStartedAt: string | null = null;
   if (openEntry) {
-    const { data: openBreak } = await supabase
+    const { data: pause } = await supabase
       .from("break_entries")
-      .select("id")
+      .select("started_at")
       .eq("time_entry_id", openEntry.id)
       .is("ended_at", null)
       .maybeSingle();
-    isOnBreak = Boolean(openBreak);
+    breakStartedAt = pause?.started_at ?? null;
   }
 
-  const adjustable: AdjustableEntry[] = (entries ?? [])
+  // La date de la journée en cours se lit sur la session ouverte : c'est celle
+  // du pointage d'arrivée. Sinon on retombe sur la date du jour.
+  const aujourdHui =
+    openEntry?.work_date ?? new Date().toISOString().slice(0, 10);
+  const debutMois = `${aujourdHui.slice(0, 7)}-01`;
+
+  const debut = du ?? debutMois;
+  const fin = au ?? aujourdHui;
+
+  const { data: entries } = await supabase
+    .from("time_entries")
+    .select("*")
+    .eq("member_id", memberId)
+    .gte("work_date", debut)
+    .lte("work_date", fin)
+    .order("work_date", { ascending: false });
+
+  const { data: mois } = await supabase
+    .from("time_entries")
+    .select("work_date, effective_minutes")
+    .eq("member_id", memberId)
+    .gte("work_date", debutMois)
+    .lte("work_date", aujourdHui);
+
+  const { data: adjustments } = await supabase
+    .from("time_adjustments")
+    .select("*")
+    .eq("member_id", memberId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const pointages = (entries ?? []) as Pointage[];
+
+  // Journée en cours : on ne totalise que les sessions DÉJÀ clôturées, la
+  // session ouverte étant comptée en direct par le panneau.
+  const cloturesDuJour = pointages.filter(
+    (e) => e.work_date === aujourdHui && e.clock_out !== null
+  );
+  const minutesEffectivesJour = cloturesDuJour.reduce(
+    (somme, e) => somme + (e.effective_minutes ?? 0),
+    0
+  );
+  const minutesPauseJour = cloturesDuJour.reduce(
+    (somme, e) => somme + (e.break_minutes ?? 0),
+    0
+  );
+
+  const totalMois = (mois ?? []).reduce(
+    (somme, e) => somme + (e.effective_minutes ?? 0),
+    0
+  );
+
+  const ajustables: AdjustableEntry[] = pointages
     .filter((e) => e.clock_out !== null)
     .slice(0, 10)
     .map((e) => ({
@@ -67,145 +134,194 @@ export default async function PointagePage() {
       clock_out: e.clock_out as string,
     }));
 
-  const totalMonth = (entries ?? [])
-    .filter((e) => e.work_date.slice(0, 7) === new Date().toISOString().slice(0, 7))
-    .reduce((sum, e) => sum + (e.effective_minutes ?? 0), 0);
+  const colonnes: Column<Pointage>[] = [
+    {
+      key: "date",
+      header: "Date",
+      cell: (e) => (
+        <span className="text-content">
+          {new Date(e.work_date + "T00:00:00").toLocaleDateString("fr-FR", {
+            weekday: "short",
+            day: "2-digit",
+            month: "2-digit",
+          })}
+        </span>
+      ),
+    },
+    {
+      key: "arrivee",
+      header: "Arrivée",
+      hideBelow: "sm",
+      cell: (e) => <span className="text-content">{heureCourte(e.clock_in)}</span>,
+    },
+    {
+      key: "sortie",
+      header: "Sortie",
+      hideBelow: "sm",
+      cell: (e) => (
+        <span className="text-content">
+          {e.clock_out ? heureCourte(e.clock_out) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "pauses",
+      header: "Pauses",
+      hideBelow: "md",
+      cell: (e) => (
+        <span className="text-content-muted">
+          {e.break_minutes > 0 ? `${e.break_minutes} min` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "effectif",
+      header: "Effectif",
+      cell: (e) => (
+        <span className="font-medium text-content">
+          {formatMinutes(e.effective_minutes)}
+        </span>
+      ),
+    },
+    {
+      key: "ecart",
+      header: "Écart",
+      hideBelow: "md",
+      cell: (e) =>
+        e.variance_minutes === null ? (
+          <span className="text-content-muted">—</span>
+        ) : (
+          <Badge tone={e.variance_minutes >= 0 ? "success" : "warning"}>
+            {e.variance_minutes >= 0 ? "+" : ""}
+            {formatMinutes(e.variance_minutes)}
+          </Badge>
+        ),
+    },
+    {
+      key: "statut",
+      header: "Statut",
+      cell: (e) => <StatusBadge status={e.status} />,
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-content">
-          Pointage
-        </h1>
-        <p className="mt-1 text-sm text-content-muted">
-          {formatMinutes(totalMonth)} cumulées ce mois-ci
-        </p>
-      </header>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <PageHeader
+        title="Pointage"
+        description={`${formatMinutes(totalMois)} cumulées ce mois-ci`}
+      />
+
+      <ClockPanel
+        isOpen={Boolean(openEntry)}
+        isOnBreak={Boolean(breakStartedAt)}
+        clockedInAt={openEntry?.clock_in ?? null}
+        breakStartedAt={breakStartedAt}
+        minutesEffectivesJour={minutesEffectivesJour}
+        minutesPauseJour={minutesPauseJour}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Ma journée</CardTitle>
-          <CardDescription>
-            Une seule session peut être ouverte à la fois. Les pauses sont
-            déduites du temps effectif.
-          </CardDescription>
+          <div>
+            <CardTitle>Historique</CardTitle>
+            <CardDescription>
+              {du || au
+                ? `Du ${formatDate(debut)} au ${formatDate(fin)}`
+                : "Le mois en cours"}
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
-          <ClockWidget
-            isOpen={Boolean(openEntry)}
-            isOnBreak={isOnBreak}
-            clockedInAt={openEntry?.clock_in ?? null}
+        <CardContent className="space-y-4">
+          <FilterBar
+            actions={
+              du || au ? (
+                <a
+                  href="/pointage"
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                >
+                  Revenir au mois en cours
+                </a>
+              ) : null
+            }
+          >
+            <form className="flex flex-wrap items-end gap-3" action="/pointage">
+              <FilterField label="Du" htmlFor="du">
+                <input
+                  id="du"
+                  name="du"
+                  type="date"
+                  defaultValue={debut}
+                  className="h-9 rounded-control border border-border-strong bg-surface px-2.5 text-sm text-content"
+                />
+              </FilterField>
+              <FilterField label="Au" htmlFor="au">
+                <input
+                  id="au"
+                  name="au"
+                  type="date"
+                  defaultValue={fin}
+                  className="h-9 rounded-control border border-border-strong bg-surface px-2.5 text-sm text-content"
+                />
+              </FilterField>
+              <button
+                type="submit"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Appliquer
+              </button>
+            </form>
+          </FilterBar>
+
+          <DataTable
+            columns={colonnes}
+            rows={pointages}
+            rowKey={(e) => e.id}
+            caption="Historique des pointages"
+            empty={
+              <EmptyState
+                icon={CalendarClock}
+                title="Aucun pointage sur la période"
+                description={
+                  du || au
+                    ? "Aucune session enregistrée entre ces deux dates."
+                    : "Votre historique apparaîtra après votre premier pointage."
+                }
+              />
+            }
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Historique</CardTitle>
-          <CardDescription>
-            Les 30 dernières sessions pointées
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {(entries ?? []).length === 0 ? (
-            <EmptyState
-              title="Aucun pointage"
-              description="Votre historique apparaîtra après votre premier pointage."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
-                    <th className="py-2 pr-3 font-medium">Date</th>
-                    <th className="py-2 pr-3 font-medium">Arrivée</th>
-                    <th className="py-2 pr-3 font-medium">Sortie</th>
-                    <th className="py-2 pr-3 font-medium">Pauses</th>
-                    <th className="py-2 pr-3 font-medium">Effectif</th>
-                    <th className="py-2 pr-3 font-medium">Écart</th>
-                    <th className="py-2 font-medium">Statut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(entries ?? []).map((e) => (
-                    <tr
-                      key={e.id}
-                      className="border-b border-border last:border-0"
-                    >
-                      <td className="py-2 pr-3 text-content">
-                        {new Date(e.work_date + "T00:00:00").toLocaleDateString(
-                          "fr-FR",
-                          { weekday: "short", day: "2-digit", month: "2-digit" }
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-content">
-                        {new Date(e.clock_in).toLocaleTimeString("fr-FR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                      <td className="py-2 pr-3 text-content">
-                        {e.clock_out
-                          ? new Date(e.clock_out).toLocaleTimeString("fr-FR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-content-muted">
-                        {e.break_minutes > 0 ? `${e.break_minutes} min` : "—"}
-                      </td>
-                      <td className="py-2 pr-3 font-medium text-content">
-                        {formatMinutes(e.effective_minutes)}
-                      </td>
-                      <td className="py-2 pr-3">
-                        {e.variance_minutes === null ? (
-                          "—"
-                        ) : (
-                          <Badge
-                            tone={
-                              e.variance_minutes >= 0 ? "success" : "warning"
-                            }
-                          >
-                            {e.variance_minutes >= 0 ? "+" : ""}
-                            {formatMinutes(e.variance_minutes)}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-2">
-                        <StatusBadge status={e.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </CardContent>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Demander une correction</CardTitle>
-            <CardDescription>
-              Toute modification d&apos;un pointage clôturé passe par une
-              validation
-            </CardDescription>
+            <div>
+              <CardTitle>Demander une correction</CardTitle>
+              <CardDescription>
+                Toute modification d&apos;un pointage clôturé passe par une
+                validation
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
-            <AdjustmentForm entries={adjustable} />
+            <AdjustmentForm entries={ajustables} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Mes corrections</CardTitle>
-            <CardDescription>Suivi de vos demandes</CardDescription>
+            <div>
+              <CardTitle>Mes corrections</CardTitle>
+              <CardDescription>Suivi de vos demandes</CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {(adjustments ?? []).length === 0 ? (
-              <EmptyState title="Aucune demande de correction" />
+              <EmptyState
+                icon={ClipboardList}
+                title="Aucune demande de correction"
+                description="Vos demandes de correction de pointage apparaîtront ici."
+              />
             ) : (
               (adjustments ?? []).map((a) => (
                 <div
@@ -214,9 +330,7 @@ export default async function PointagePage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-content">
-                        {a.reason}
-                      </p>
+                      <p className="truncate text-sm text-content">{a.reason}</p>
                       <p className="mt-0.5 text-xs text-content-muted">
                         demandée le {formatDate(a.created_at.slice(0, 10))}
                       </p>
