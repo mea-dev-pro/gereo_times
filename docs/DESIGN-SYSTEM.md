@@ -166,3 +166,19 @@ export default async function Page({ searchParams }) {
 
 Le contrôle de rôle se fait **côté serveur**, avant toute lecture de données.
 Masquer une entrée de navigation n'est pas une protection.
+
+---
+
+## Revue visuelle
+
+```bash
+npm run captures        # 20 captures dans docs/captures/ (1440 px et 390 px)
+```
+
+L'application doit tourner (`npm run dev`) et les sessions de test être
+préparées (`npm run e2e:auth`). Le script retire l'indicateur Next.js Devtools,
+qui n'existe qu'en développement et apparaîtrait sinon sur chaque image.
+
+La comparaison avec la maquette de référence, les valeurs mesurées et les écarts
+résiduels sont consignés dans `docs/REVUE-COMPARATIVE.md`.
+
