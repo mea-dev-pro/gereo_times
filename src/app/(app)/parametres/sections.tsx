@@ -499,8 +499,14 @@ export function ScheduleSection({
                   const day = pattern[d.key];
                   const worked = day !== null && day !== undefined;
                   return (
-                    <div key={d.key} className="flex items-center gap-3">
-                      <label className="flex w-28 items-center gap-2 text-sm text-content-muted">
+                    <div
+                      key={d.key}
+                      // Sans retour à la ligne, libellé + deux champs d'heure
+                      // dépassaient la largeur d'un téléphone. Sous sm, le
+                      // libellé prend sa propre ligne.
+                      className="flex flex-wrap items-center gap-2 sm:gap-3"
+                    >
+                      <label className="flex w-full items-center gap-2 text-sm text-content-muted sm:w-28">
                         <input
                           type="checkbox"
                           name={`day_${d.key}`}

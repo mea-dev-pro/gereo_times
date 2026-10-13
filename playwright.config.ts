@@ -44,5 +44,19 @@ export default defineConfig({
       testMatch: /(admin|theme)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], storageState: "tests/.auth/admin.json" },
     },
+    {
+      // Critère UX-05 du PRD : aucun débordement horizontal, actions critiques
+      // atteignables. Le compte administrateur voit tous les écrans.
+      name: "mobile",
+      testMatch: /mobile\.spec\.ts/,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+        storageState: "tests/.auth/admin.json",
+      },
+    },
   ],
 });
