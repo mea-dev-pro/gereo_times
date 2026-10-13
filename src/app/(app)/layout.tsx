@@ -84,6 +84,15 @@ export default async function AppLayout({
   return (
     <ToastProvider>
       <div className="flex min-h-screen flex-col lg:flex-row">
+        {/* Premier arrêt de tabulation. Sans lui, atteindre le contenu demande
+            de traverser les quatorze liens et commandes du rail latéral :
+            WCAG 2.4.1, « éviter les blocs ». */}
+        <a
+          href="#contenu"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-content"
+        >
+          Aller au contenu
+        </a>
       <aside className="no-print border-b border-border bg-surface lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
         <div className="px-5 pb-2 pt-4">
           <Link
@@ -121,7 +130,11 @@ export default async function AppLayout({
         </div>
       </aside>
 
-        <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+        {/* tabIndex -1 : cible du lien d'évitement, donc focalisable par le
+            fragment d'URL sans entrer dans l'ordre de tabulation. */}
+        <main id="contenu" tabIndex={-1} className="flex-1 px-4 py-6 lg:px-8">
+          {children}
+        </main>
         </div>
     </ToastProvider>
   );

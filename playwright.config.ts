@@ -45,6 +45,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], storageState: "tests/.auth/admin.json" },
     },
     {
+      // Critère UX-06 du PRD : ordre de tabulation, focus visible, dialogues
+      // utilisables au clavier. Le compte administrateur voit tous les écrans.
+      name: "clavier",
+      testMatch: /clavier\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], storageState: "tests/.auth/admin.json" },
+    },
+    {
       // Critère UX-05 du PRD : aucun débordement horizontal, actions critiques
       // atteignables. Le compte administrateur voit tous les écrans.
       name: "mobile",
