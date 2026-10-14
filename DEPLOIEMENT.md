@@ -209,7 +209,8 @@ puis entre l'arrivée de l'écran et celle de son contenu.
 ```bash
 npm run build && npm run start          # jamais en développement : la
                                         # compilation à la demande fausse tout
-npm run perf:nav -- http://localhost:3000
+npm run perf:nav -- http://localhost:3000        # écran par écran, contexte neuf
+npm run perf:parcours -- http://localhost:3000   # dix écrans enchaînés, même session
 npm run perf:nav -- https://gereotimes.vercel.app /conges /equipe   # production
 ```
 
@@ -218,6 +219,10 @@ lien du rail et relève, dans la page : le clic, l'apparition de la silhouette
 d'attente (`data-chargement`) et l'affichage du titre de destination. Trois
 passages par cible, médiane publiée. Il compte aussi les requêtes RSC et le
 nombre de requêtes réseau déclenchées par la navigation.
+
+`scripts/perf-parcours.mjs` fait l'inverse : une seule session, dix écrans
+enchaînés, 1,2 s entre deux clics — c'est la seule façon de voir ce que rendent
+les caches du navigateur, un contexte neuf ne les ayant jamais remplis.
 
 Deux variables d'environnement :
 
@@ -231,24 +236,36 @@ Deux variables d'environnement :
 
 ### Mesures relevées le 14/10/2026
 
-Production (`clic → titre affiché`, médiane de 3, clic immédiat) :
+Production (`clic → titre affiché`, médiane de 3, clic immédiat — le cas le plus
+défavorable, la coquille préchargée n'est pas encore arrivée) :
 
-| Cible | Avant travaux | Après session et requêtes groupées | Après référentiels en cache |
-| --- | --- | --- | --- |
-| `/pointage` | 2851 ms | 2434 ms | 2379 ms |
-| `/conges` | 2077 ms | 1717 ms | 1527 ms |
-| `/equipe` | 3351 ms | 1663 ms | 1550 ms |
-| **moyenne** | **2760 ms** | **1938 ms** | **1818 ms** |
+| Cible | Avant travaux | Après les trois lots |
+| --- | --- | --- |
+| `/` | — | 1609 ms |
+| `/pointage` | 2851 ms | 2019 ms |
+| `/conges` | 2077 ms | 1721 ms |
+| `/calendrier` | — | 1482 ms |
+| `/notifications` | — | 1492 ms |
+| `/validations` | — | 1427 ms |
+| `/equipe` | 3351 ms | 1455 ms |
+| `/rapports` | — | 5172 ms (isolé, voir plus bas) |
+| `/parametres` | — | 1452 ms |
+| **moyenne** | **2760 ms** | **1981 ms** |
 
-Mêmes cibles, clic 2,5 s après le chargement (le préchargement a le temps
-d'arriver) : moyenne **1640 ms**, et la silhouette d'attente s'affiche en
-**~50 ms** — contre *rien du tout* avant, où l'écran précédent restait en place
-pendant les 2,8 s.
+Parcours réel (`npm run perf:parcours` — dix écrans enchaînés dans une même
+session, 1,2 s entre deux clics) : 1 154 à 1 844 ms par écran, **silhouette
+d'attente affichée en 30 à 70 ms**. Avant travaux, l'écran précédent restait en
+place pendant les 2,8 s : rien ne bougeait.
 
 Local (`npm run start`, aucun réseau vers Vercel), neuf écrans, clic immédiat :
-moyenne **1078 ms** (référentiels en cache), silhouette en 50-85 ms, 2,1 requêtes
-réseau par navigation. La mesure locale antérieure (1256 ms) venait d'un relevé
-moins précis : seul le chiffre de la même campagne est comparable.
+moyenne **835 ms**, silhouette en 24 à 286 ms.
+
+**Sur l'instrument de mesure.** Le relevé de l'affichage se faisait d'abord par
+un minuteur (`setInterval`), qui ne reprend la main qu'une fois le rendu
+terminé : il gonflait la mesure de 200 à 300 ms. Les scripts sondent désormais à
+chaque image (`requestAnimationFrame`). Les valeurs publiées ci-dessus viennent
+toutes de l'instrument corrigé ; un chiffre intermédiaire (1 938 ms) avait été
+relevé avec le minuteur et n'est pas comparable.
 
 ### Ce qui a été fait
 
@@ -266,6 +283,18 @@ moins précis : seul le chiffre de la même campagne est comparable.
    la route — donc du préchargement. Effet mesuré au passage :
    `x-nextjs-stale-time: 300` sur les réponses, là où le cache navigateur était
    auparavant de quelques dizaines de secondes.
+5. Calendrier et rapports servis par le cache navigateur
+   (`src/lib/data/calendrier.ts`, `src/lib/data/rapports.ts`,
+   `"use cache: private"`) : la session de l'utilisateur est conservée, donc la
+   RLS continue de décider de ce qui est lisible, mais revenir sur un écran déjà
+   visité coûte 150 à 200 ms au lieu de 1,2 s tant que l'entrée est fraîche.
+   Ces deux écrans sont des écrans de consultation, où cinq minutes de retard ne
+   changent rien à une décision. Les écrans de décision — soldes, pointage —
+   gardent leur lecture directe.
+
+À noter : après un tour complet des dix écrans, le routeur ne ressert plus les
+entrées et la navigation repaie son rendu. La limite est du côté de la taille du
+cache navigateur, pas d'un réglage à oublier.
 
 ### Ce qui reste lent, et pourquoi
 
@@ -275,6 +304,12 @@ sont les allers-retours vers Supabase. Les fonctions Vercel s'exécutent au Cap
 (`x-vercel-id: cpt1`) et la base est en Irlande (`eu-west-1`) : chaque
 aller-retour coûte ~200 ms, et il en reste un ou deux par écran (session, puis
 données de la page), en série.
+
+S'y ajoutent des à-coups : `/rapports` a été relevé à 5 172 ms et `/pointage` à
+6 129 ms une fois chacun, alors que leur médiane est de 1,4 à 2,0 s. Un
+démarrage à froid d'instance de fonction explique ce genre de pic, pas le code
+de la page — à surveiller, mais ils sont rares et non reproductibles à la
+demande.
 
 Les leviers restants, par ordre de rendement :
 
