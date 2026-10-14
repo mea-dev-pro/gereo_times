@@ -113,6 +113,30 @@ Contrôles passés sur la production :
 E2E_BASE_URL=https://gereotimes.vercel.app npx playwright test --project=public   # 9/9
 ```
 
+### Mise en ligne du 14/10/2026
+
+Déploiement `gereotimes-5xcqgxnd3-devp-roject.vercel.app` promu en production
+(commit `25abcfb`), après application de la migration 0008 :
+
+```bash
+vercel crons ls              # /api/cron/quotidien   0 4 * * *
+vercel inspect gereotimes-5xcqgxnd3-devp-roject.vercel.app   # ● Ready
+```
+
+La tâche planifiée a été appelée sur la production, avec puis sans le secret :
+
+| Appel | Résultat |
+| --- | --- |
+| sans en-tête `Authorization` | `401 {"error":"Non autorisé."}` |
+| avec un mauvais secret | `401` — le même message, aucune indication sur la cause |
+| avec `CRON_SECRET` | `200` — 3 organisations, période `2026-09-01 → 2026-09-30`, 0 écriture |
+
+Les 0 écritures sont le résultat attendu : les politiques des trois
+organisations prennent effet le 12 ou le 13 octobre, donc le mois de septembre
+les précède — rien à créditer. Le premier crédit réel aura lieu au premier
+passage de novembre, sur la période d'octobre. Une politique postérieure à la
+période est ignorée, ce que la vérification hors ligne contrôle aussi.
+
 Et une tentative de connexion avec un compte inexistant renvoie
 « Email ou mot de passe incorrect. » — la réponse de Supabase Auth, donc les
 clés de production sont acceptées et la base est joignable depuis Vercel.
