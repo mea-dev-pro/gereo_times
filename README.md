@@ -43,6 +43,13 @@ Pour les notifications par email (facultatif) :
 - `RESEND_API_KEY` et `EMAIL_FROM` — sans eux, l'application fonctionne
   normalement et aucun email n'est expédié ; les notifications restent internes
 
+Pour la tâche planifiée (obligatoire en production) :
+
+- `CRON_SECRET` — secret partagé avec Vercel, qui le joint en
+  `Authorization: Bearer` à chaque appel de `/api/cron/quotidien`. Sans lui, la
+  route répond 401 : elle écrit des mouvements de solde, elle n'est pas
+  ouverte.
+
 `.env.local` est exclu du dépôt par `.gitignore`. Ne jamais exposer
 `SUPABASE_SERVICE_ROLE_KEY` côté client : elle contourne intégralement la RLS.
 
@@ -51,7 +58,7 @@ Pour les notifications par email (facultatif) :
 ```bash
 npm run db:apply      # applique les migrations manquantes
 npm run db:check      # affiche l'état du schéma sans modifier
-npm run db:verify     # 65 contrôles hors ligne (PGlite), RLS réellement appliquée
+npm run db:verify     # 71 contrôles hors ligne (PGlite), RLS réellement appliquée
 npm run db:clean-test # purge des données de recette (simulation par défaut)
 npm run e2e           # suite Playwright (nécessite npm run e2e:auth au préalable)
 ```
@@ -124,6 +131,8 @@ src/
     (app)/                  zone authentifiée (tableau de bord, pointage, congés,
                             calendrier, validations, équipe, rapports, paramètres)
     api/export/[kind]/      exports CSV (présence, congés, soldes)
+    api/cron/quotidien/     tâche planifiée Vercel : acquisition des congés puis
+                            expédition des notifications en attente
     auth/confirmer/         point d'arrivée des liens d'activation
     connexion/  inscription/  organisation/nouvelle/
   lib/
@@ -210,10 +219,15 @@ pages publiques ont été vérifiées dans un navigateur.
 - **notifications** : fil interne avec compteur de non-lues, alimenté par les
   RPC métier ; table servant de **boîte d'envoi email** (Resend), avec état
   d'expédition et trace d'échec en base
+- **acquisition planifiée** : tâche quotidienne Vercel (`/api/cron/quotidien`)
+  qui crédite le mois écoulé pour chaque organisation dans son fuseau horaire,
+  puis dépile les notifications en attente — idempotente, donc un jour manqué
+  est rattrapé sans double crédit
 
 **À venir (phase 2, sprints 5 et 6)**
 
-- déploiement (Vercel + Supabase), notifications par email en production
+- production : **faite** (https://gereotimes.vercel.app) ; restent la clé Resend
+  pour les emails réels et le rattachement Git du dépôt pour l'auto-déploiement
 
 ---
 

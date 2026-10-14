@@ -7,6 +7,10 @@ const PUBLIC_PATHS = [
   "/inscription",
   "/mot-de-passe-oublie",
   "/auth",
+  // Tâches planifiées : appelées par Vercel, sans cookie de session. Leur
+  // contrôle d'accès est fait dans la route elle-même, par un secret partagé
+  // (CRON_SECRET) — sans lui, la route répond 401.
+  "/api/cron",
 ];
 
 /**

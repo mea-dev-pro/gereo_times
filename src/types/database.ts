@@ -406,6 +406,10 @@ export type Database = {
         };
         Returns: number;
       };
+      run_scheduled_accrual: {
+        Args: { p_now?: string };
+        Returns: Json;
+      };
       adjust_leave_balance: {
         Args: {
           p_organization_id: string;

@@ -74,13 +74,14 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_DB_URL          (utile seulement aux migrations, peut être omise en production)
+CRON_SECRET              (obligatoire : sans lui, la tâche planifiée refuse tout appel)
 RESEND_API_KEY           (facultatif)
 EMAIL_FROM               (facultatif)
 ```
 
 Ne marquez **jamais** `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`,
-`RESEND_API_KEY` comme exposées au navigateur : elles contournent la RLS ou
-donnent accès à la base.
+`CRON_SECRET`, `RESEND_API_KEY` comme exposées au navigateur : elles contournent
+la RLS, donnent accès à la base ou déclenchent des écritures.
 
 3. Déployer, puis mettre à jour **Redirect URLs** dans Supabase avec le domaine
    réel si ce n'est pas déjà fait.
@@ -100,7 +101,11 @@ donnent accès à la base.
   été relues depuis Vercel et comparées à `.env.local` : identiques. La clé
   secrète n'est volontairement pas relisible.
 - `RESEND_API_KEY` et `EMAIL_FROM` ne sont pas posées : la messagerie reste
-  interne, comme prévu sans elles.
+  interne, comme prévu sans elles. La chaîne d'envoi est en revanche vérifiée
+  de bout en bout (voir plus bas) : il ne manque que la clé.
+- `CRON_SECRET` est posée pour **Production et Preview** (type *Secret*) : sans
+  elle, `/api/cron/quotidien` refuse tout appel. La valeur vit dans `.env.local`
+  et sur Vercel, jamais ailleurs.
 
 Contrôles passés sur la production :
 
@@ -120,9 +125,23 @@ Deux points restent à faire, hors CLI :
    `mea-dev-pro/gereo_times` (Settings → GitHub Apps → Vercel → Repository
    access), puis relancer `vercel git connect`. En attendant, publier se fait
    par `vercel deploy --prod`.
-2. **Redirect URL Supabase.** Ajouter `https://gereotimes.vercel.app/auth/confirmer`
-   dans Authentication → URL Configuration. Sans cela, les liens d'activation
-   envoyés aux collaborateurs retombent sur l'accueil.
+2. **Clé Resend.** `RESEND_API_KEY` et `EMAIL_FROM` : sans elles la file
+   d'envoi reste pleine. Les créer sur resend.com, puis les poser sur Vercel
+   (`vercel env add` en collant la valeur sur l'entrée standard — jamais dans
+   `argv`). Une fois posées, la vérification se fait avec le serveur local
+   démarré :
+
+```bash
+npm run build && npm run start        # puis, dans un autre terminal :
+node scripts/verify-email-chain.mjs http://localhost:3000
+```
+
+Le point « Redirect URL Supabase » est levé : le filtre a été interrogé
+directement sur `/auth/v1/verify` avec un jeton invalide et
+`redirect_to=https://gereotimes.vercel.app/auth/confirmer` — le domaine passe
+(l'échec porte sur le jeton), tandis qu'un domaine inventé est refusé par la
+liste blanche. L'appel `/auth/v1/admin/generate_link`, lui, ne prouve rien : il
+accepte n'importe quel domaine.
 
 Les 52 scénarios E2E complets (`employe`, `admin`, `mobile`) ne sont pas encore
 rejoués contre la production : leurs sessions sont liées à `localhost:3000` et
@@ -163,7 +182,7 @@ schéma :
 
 ```bash
 npm run db:check    # « Tables sans RLS : aucune »
-npm run db:verify   # 65 contrôles, en rôle non privilégié
+npm run db:verify   # 71 contrôles, en rôle non privilégié
 ```
 
 **Clés compromises.** Si `SUPABASE_SERVICE_ROLE_KEY` ou le mot de passe de la
@@ -177,12 +196,47 @@ Vérifiez la rétention (Database → Backups) et testez une restauration.
 
 **Envois email.** Sans `RESEND_API_KEY` ni `EMAIL_FROM`, aucune notification
 n'est expédiée : l'application reste fonctionnelle, les messages restent
-internes. Les envois en attente et les échecs sont visibles dans
-`public.notifications` (`email_sent_at`, `email_error`).
+internes. Avec elles, les envois partent de deux façons : immédiatement après
+l'action qui les déclenche (demande de congé, validation), et au plus tard par
+la tâche planifiée quotidienne, qui dépile ce qui reste. Les envois en attente
+et les échecs sont visibles dans `public.notifications` (`email_sent_at`,
+`email_error` — une erreur sort la ligne de la file pour qu'elle reste
+examinable).
 
-**Tâches planifiées.** Aucun ordre du jour automatique n'est encore branché :
-l'acquisition mensuelle des congés se déclenche via `accrue_leave(...)`. Sur
-Vercel, un *Cron Job* peut l'appeler chaque début de mois.
+**Chaîne d'envoi déjà éprouvée.** Avec une clé volontairement invalide, la tâche
+planifiée a été appelée contre la base réelle : Resend a répondu
+`401 — API key is invalid`, l'erreur a été consignée dans `email_error` et la
+ligne est sortie de la file. Autrement dit, il ne manque que la clé — et non du
+code. La notification jetable du test a été supprimée et les notifications déjà
+en file ont été remises en attente.
+
+**Tâches planifiées.** `vercel.json` déclare une tâche quotidienne
+(`0 4 * * *`) sur `/api/cron/quotidien` : elle crédite l'acquisition des congés
+du mois écoulé pour chaque organisation, dans son propre fuseau horaire, puis
+expédie les notifications en attente. Vercel joint
+`Authorization: Bearer $CRON_SECRET` ; **sans `CRON_SECRET`, la route répond
+401 à tout le monde** (échec fermé).
+
+L'acquisition est idempotente en base (référence déterministe par organisation,
+membre, type et période, plus l'index unique `leave_ledger_one_accrual_per_ref_idx`) :
+la tâche peut donc passer tous les jours, ce qui rattrape une journée manquée
+sans jamais créditer deux fois le même mois. Pour la déclencher à la main :
+
+```bash
+curl -s -H "Authorization: Bearer $CRON_SECRET" \
+  https://gereotimes.vercel.app/api/cron/quotidien
+```
+
+Deux remarques utiles :
+
+- le plan Hobby de Vercel n'accepte qu'une exécution par jour et par tâche :
+  c'est la raison d'un passage quotidien plutôt que d'un passage mensuel, la
+  logique métier restant mensuelle ;
+- une politique `quarterly` n'est créditée que sur un mois qui clôt un
+  trimestre, une politique `yearly` qu'en décembre. À l'inverse,
+  `accrue_leave(...)`, appelée à la main depuis l'application, crédite la
+  période demandée telle quelle : les règles d'acquisition et de proratisation
+  restent une question ouverte du PRD (section 11).
 
 ---
 

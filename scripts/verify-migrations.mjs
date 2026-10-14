@@ -610,5 +610,69 @@ await asOwner(async () => {
 });
 
 // =============================================================================
+console.log("\n=== 10. Acquisition planifiée (migration 0008) ===");
+await setUser(adminId);
+
+// La fonction écrit des mouvements de solde : elle ne doit pas être
+// déclenchable depuis un navigateur, même avec une session valide.
+await expectError(
+  "Un rôle applicatif ne peut pas déclencher l'acquisition planifiée",
+  () => q(`select public.run_scheduled_accrual()`),
+  "permission denied");
+
+/** Appelle l'acquisition planifiée en rôle propriétaire, à une date donnée. */
+const planifiee = (ts) =>
+  asOwner(async () =>
+    (await q(`select public.run_scheduled_accrual($1::timestamptz) as r`, [ts]))[0].r);
+
+const totalEntrees = (r) =>
+  (r.organizations ?? []).reduce((s, o) => s + (o.entries ?? 0), 0);
+
+// Période visée : le mois écoulé dans le fuseau de l'organisation
+// (15 décembre → novembre).
+const planif1 = await planifiee("2026-12-15T00:00:00Z");
+check("run_scheduled_accrual crédite le mois écoulé",
+  totalEntrees(planif1) > 0,
+  `${totalEntrees(planif1)} écritures — ${planif1.organizations[0]?.period_start} → ${planif1.organizations[0]?.period_end}`);
+
+const planif2 = await planifiee("2026-12-15T00:00:00Z");
+check("run_scheduled_accrual idempotent (rattrapage sans double crédit)",
+  totalEntrees(planif2) === 0);
+
+// Politique trimestrielle : 5 jours, à créditer au trimestre seulement
+await asOwner(() =>
+  q(`update public.leave_policies set accrual_frequency = 'quarterly',
+            accrual_amount = 5, effective_from = '2026-01-01'
+      where organization_id = $1
+        and leave_type_id = (select id from public.leave_types
+                             where organization_id = $1 and code = 'UNPAID')`, [org]));
+
+const [horsTrimestre] = await asOwner(() =>
+  q(`select count(*)::int as n from public.leave_ledger l
+     join public.leave_types lt on lt.id = l.leave_type_id
+     where l.organization_id = $1 and lt.code = 'UNPAID'
+       and l.movement = 'accrual' and l.effective_date = '2026-11-30'`, [org]));
+check("Une politique trimestrielle n'est pas créditée hors trimestre",
+  horsTrimestre.n === 0);
+
+// 20 janvier → période de décembre, qui clôt un trimestre
+await planifiee("2027-01-20T00:00:00Z");
+const [auTrimestre] = await asOwner(() =>
+  q(`select l.amount, l.note from public.leave_ledger l
+     join public.leave_types lt on lt.id = l.leave_type_id
+     where l.organization_id = $1 and lt.code = 'UNPAID'
+       and l.movement = 'accrual' and l.effective_date = '2026-12-31'`, [org]));
+check("Elle l'est au trimestre écoulé",
+  auTrimestre && Number(auTrimestre.amount) === 5,
+  auTrimestre ? `${auTrimestre.amount} j — ${auTrimestre.note}` : "aucune écriture");
+
+const [trace] = await asOwner(() =>
+  q(`select after from public.audit_logs
+     where organization_id = $1 and action = 'leave.accrual_run'
+       and after->>'source' = 'planifiee' limit 1`, [org]));
+check("L'exécution planifiée est tracée dans le journal",
+  Boolean(trace), trace ? `entrées : ${trace.after.entries}` : "aucune trace");
+
+// =============================================================================
 console.log(`\n=== RÉSULTAT : ${checks} vérifications, ${failures} échec(s) ===\n`);
 process.exit(failures === 0 ? 0 : 1);

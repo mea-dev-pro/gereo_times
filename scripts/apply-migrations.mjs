@@ -146,12 +146,13 @@ const functions = await client.query(`
       'accrue_leave','adjust_leave_balance','compute_leave_days',
       'is_working_day','leave_available_days','request_time_adjustment',
       'decide_time_adjustment','recalc_time_entry',
-      'invite_member','accept_pending_invitation','revoke_invitation'
+      'invite_member','accept_pending_invitation','revoke_invitation',
+      'accrue_leave_apply','run_scheduled_accrual'
     )
   order by 1
 `);
 
-const EXPECTED_FUNCTIONS = 19;
+const EXPECTED_FUNCTIONS = 21;
 
 const views = await client.query(`
   select table_name from information_schema.views
