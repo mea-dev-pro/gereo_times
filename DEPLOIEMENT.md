@@ -199,7 +199,106 @@ Puis, à la main :
 
 ---
 
+## 4 bis. Performance de navigation
+
+Le ressenti se joue là : entre le clic sur un lien du rail et l'écran suivant,
+puis entre l'arrivée de l'écran et celle de son contenu.
+
+### Comment mesurer
+
+```bash
+npm run build && npm run start          # jamais en développement : la
+                                        # compilation à la demande fausse tout
+npm run perf:nav -- http://localhost:3000
+npm run perf:nav -- https://gereotimes.vercel.app /conges /equipe   # production
+```
+
+`scripts/perf-navigation.mjs` ouvre un contexte neuf par passage, clique sur le
+lien du rail et relève, dans la page : le clic, l'apparition de la silhouette
+d'attente (`data-chargement`) et l'affichage du titre de destination. Trois
+passages par cible, médiane publiée. Il compte aussi les requêtes RSC et le
+nombre de requêtes réseau déclenchées par la navigation.
+
+Deux variables d'environnement :
+
+- `PERF_STATE` — chemin d'un jeu de cookies autre que `tests/.auth/admin.json`,
+  pour viser un domaine différent de localhost. Un fichier
+  `tests/.auth/admin-prod.json` s'obtient en recopiant la session d'admin en
+  remplaçant le champ `domain` par `.gereotimes.vercel.app` et `secure` par
+  `true` ;
+- `PERF_ATTENTE` — délai laissé au préchargement avant de cliquer (0 par
+  défaut, soit le cas le plus défavorable : clic immédiat).
+
+### Mesures relevées le 14/10/2026
+
+Production (`clic → titre affiché`, médiane de 3, clic immédiat) :
+
+| Cible | Avant travaux | Après session et requêtes groupées | Après référentiels en cache |
+| --- | --- | --- | --- |
+| `/pointage` | 2851 ms | 2434 ms | 2379 ms |
+| `/conges` | 2077 ms | 1717 ms | 1527 ms |
+| `/equipe` | 3351 ms | 1663 ms | 1550 ms |
+| **moyenne** | **2760 ms** | **1938 ms** | **1818 ms** |
+
+Mêmes cibles, clic 2,5 s après le chargement (le préchargement a le temps
+d'arriver) : moyenne **1640 ms**, et la silhouette d'attente s'affiche en
+**~50 ms** — contre *rien du tout* avant, où l'écran précédent restait en place
+pendant les 2,8 s.
+
+Local (`npm run start`, aucun réseau vers Vercel), neuf écrans, clic immédiat :
+moyenne **1078 ms** (référentiels en cache), silhouette en 50-85 ms, 2,1 requêtes
+réseau par navigation. La mesure locale antérieure (1256 ms) venait d'un relevé
+moins précis : seul le chiffre de la même campagne est comparable.
+
+### Ce qui a été fait
+
+1. `getSession()` : quatre allers-retours (`getUser()` puis profil, appartenance,
+   organisation en cascade) remplacés par une vérification locale du jeton
+   (`getClaims()`) et une requête jointe. Idem dans le rafraîchissement de
+   session du middleware, donc à chaque préchargement de lien.
+2. Requêtes groupées : `/pointage` passe de cinq vagues d'appels à deux,
+   `/equipe` et `/validations` ramènent le profil avec la liste des membres.
+3. `src/app/(app)/loading.tsx` : silhouette aux dimensions des écrans réels,
+   affichée dès le clic.
+4. Référentiels d'organisation en cache (`src/lib/data/referentiel.ts`) : types
+   de congés, départements, jours fériés. Le profil `days` porte un `stale` de
+   5 minutes, seuil en dessous duquel Next exclut le contenu de la coquille de
+   la route — donc du préchargement. Effet mesuré au passage :
+   `x-nextjs-stale-time: 300` sur les réponses, là où le cache navigateur était
+   auparavant de quelques dizaines de secondes.
+
+### Ce qui reste lent, et pourquoi
+
+La réponse du serveur arrive en ~250-350 ms (premier octet), puis le contenu
+continue d'arriver pendant ~1 s. Cette seconde restante n'est pas du rendu : ce
+sont les allers-retours vers Supabase. Les fonctions Vercel s'exécutent au Cap
+(`x-vercel-id: cpt1`) et la base est en Irlande (`eu-west-1`) : chaque
+aller-retour coûte ~200 ms, et il en reste un ou deux par écran (session, puis
+données de la page), en série.
+
+Les leviers restants, par ordre de rendement :
+
+| Levier | Gain estimé | Ce qu'il coûte |
+| --- | --- | --- |
+| Mettre les données par personne en cache (`"use cache: private"`, `stale` 5 min) | le plus fort : les visites répétées d'un écran ne coûteraient plus d'aller-retour | une modification faite par quelqu'un d'autre peut rester invisible jusqu'à 5 minutes ; les actions de l'utilisateur, elles, invalident déjà tout le cache client (`revalidatePath`) |
+| Déplacer la région des fonctions Vercel vers l'Europe | ~300-400 ms | ajoute ~100-150 ms sur le trajet du navigateur ; à confirmer par une mesure depuis le lieu d'usage réel |
+| Rapatrier la base près des fonctions | dépend de l'offre Supabase | changement d'infrastructure |
+
+Le premier levier est un choix de fraîcheur des données, pas une optimisation
+technique : à décider écran par écran (un calendrier d'équipe peut se permettre
+5 minutes, un solde de congés sans doute pas).
+
+---
+
 ## 5. Points de vigilance
+
+**Cache CDN et pages personnalisées.** Les écrans authentifiés sortent en
+`Cache-Control: public, max-age=0, must-revalidate`. Vérifié le 14/10/2026 avec
+deux comptes réels sur la même URL : la page d'un administrateur n'est jamais
+servie à un employé ni à un visiteur sans session (307 vers `/connexion`), et
+l'en-tête `Vary` porte bien les paramètres de routeur. À revérifier après toute
+évolution de la mise en cache — c'est le genre de réglage qui se casse
+silencieusement, et la conséquence serait une fuite entre utilisateurs.
 
 **RLS.** Elle est active sur les 17 tables. Vérifiez après chaque évolution du
 schéma :

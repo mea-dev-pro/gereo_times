@@ -39,6 +39,11 @@ const CIBLES = [
 ].filter((c) => !args.length || args.includes(c.href));
 
 const PASSAGES = 3;
+// Délai laissé au préchargement des liens avant de cliquer. À 0, la mesure
+// décrit le cas le plus défavorable (clic immédiat, coquille pas encore
+// arrivée) ; à 2000 ms, celui d'un utilisateur qui prend le temps de viser,
+// et la coquille préchargée s'affiche alors tout de suite.
+const ATTENTE_AVANT_CLIC = Number(process.env.PERF_ATTENTE ?? 0);
 // `PERF_STATE` permet de viser un autre jeu de cookies que celui de
 // localhost — utile pour mesurer la production, dont le domaine diffère.
 const session = process.env.PERF_STATE
@@ -101,6 +106,7 @@ async function unPassage({ href, titre }) {
   const depart = href === "/pointage" ? "/conges" : "/pointage";
   await page.goto(depart, { waitUntil: "load" });
   await page.waitForSelector("main h1");
+  if (ATTENTE_AVANT_CLIC > 0) await page.waitForTimeout(ATTENTE_AVANT_CLIC);
 
   await page.click(`aside a[href="${href}"]`);
 
@@ -142,6 +148,12 @@ async function unPassage({ href, titre }) {
 }
 
 const resultats = [];
+console.log(
+  `\n  ${baseURL} — ${PASSAGES} passages par cible, médiane — ` +
+    (ATTENTE_AVANT_CLIC > 0
+      ? `clic ${ATTENTE_AVANT_CLIC} ms après le chargement, préchargement laissé agir\n`
+      : `clic immédiat après le chargement, cas le plus défavorable\n`)
+);
 for (const cible of CIBLES) {
   const passages = [];
   for (let i = 0; i < PASSAGES; i++) passages.push(await unPassage(cible));
