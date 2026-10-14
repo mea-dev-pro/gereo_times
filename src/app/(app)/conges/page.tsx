@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/page-header";
 import { formatDate } from "@/lib/utils";
 import { LeaveRequestForm } from "./leave-request-form";
 import { CancelLeaveButton } from "./cancel-button";
+import { joursFeries, typesConge } from "@/lib/data/referentiel";
 
 export const metadata: Metadata = { title: "Mes congés" };
 
@@ -45,14 +46,14 @@ export default async function CongesPage() {
   const aujourdHui = new Date().toISOString().slice(0, 10);
   const annee = aujourdHui.slice(0, 4);
 
-  const [{ data: types }, { data: balances }, { data: requests }, { data: feries }] =
+  // Types de congés et jours fériés viennent du cache d'organisation (voir
+  // lib/data/referentiel.ts) : ils ne coûtent plus d'aller-retour à chaque
+  // affichage. Seuls les soldes et les demandes, qui bougent, sont lus en
+  // direct.
+  const [typesTous, feries, { data: balances }, { data: requests }] =
     await Promise.all([
-      supabase
-        .from("leave_types")
-        .select("*")
-        .eq("organization_id", orgId)
-        .eq("active", true)
-        .order("name"),
+      typesConge(orgId),
+      joursFeries(orgId),
       supabase
         .from("leave_balances")
         .select("*")
@@ -64,11 +65,9 @@ export default async function CongesPage() {
         .eq("member_id", memberId)
         .order("created_at", { ascending: false })
         .limit(50),
-      supabase
-        .from("holidays")
-        .select("name, holiday_date, is_recurring")
-        .eq("organization_id", orgId),
     ]);
+
+  const types = typesTous.filter((t) => t.active);
 
   const balanceByType = new Map(
     (balances ?? []).map((b) => [b.leave_type_id, b])

@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
 import type { MemberStatus, OrgRole, Tables } from "@/types/database";
+import { departements } from "@/lib/data/referentiel";
 import { InviteForm, type ManagerOption } from "./invite-form";
 import { MemberRowActions, RevokeInvitationButton } from "./member-actions";
 
@@ -63,7 +64,7 @@ export default async function EquipePage({
   const supabase = await createClient();
   const orgId = session.organization.id;
 
-  const [{ data: membres }, { data: invitations }, { data: departments }] =
+  const [{ data: membres }, { data: invitations }, departments] =
     await Promise.all([
       supabase
         .from("organization_members")
@@ -79,10 +80,8 @@ export default async function EquipePage({
         .eq("organization_id", orgId)
         .eq("status", "pending")
         .order("created_at", { ascending: false }),
-      supabase
-        .from("departments")
-        .select("id, name")
-        .eq("organization_id", orgId),
+      // Référentiel mis en cache : voir lib/data/referentiel.ts.
+      departements(orgId),
     ]);
 
   const members = (membres ?? []) as LigneMembre[];

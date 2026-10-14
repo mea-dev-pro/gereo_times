@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { departements, joursFeries, typesConge } from "@/lib/data/referentiel";
 import {
   DepartmentSection,
   HolidaySection,
@@ -40,33 +41,22 @@ export default async function ParametresPage() {
   const orgId = session.organization.id;
 
   const [
-    { data: departments },
+    departments,
+    holidays,
+    types,
     { data: schedules },
-    { data: holidays },
-    { data: types },
     { data: policies },
     { data: members },
   ] = await Promise.all([
-    supabase
-      .from("departments")
-      .select("*")
-      .eq("organization_id", orgId)
-      .order("name"),
+    // Référentiels mis en cache : voir lib/data/referentiel.ts.
+    departements(orgId),
+    joursFeries(orgId),
+    typesConge(orgId),
     supabase
       .from("work_schedules")
       .select("*")
       .eq("organization_id", orgId)
       .order("is_default", { ascending: false }),
-    supabase
-      .from("holidays")
-      .select("*")
-      .eq("organization_id", orgId)
-      .order("holiday_date"),
-    supabase
-      .from("leave_types")
-      .select("*")
-      .eq("organization_id", orgId)
-      .order("name"),
     supabase
       .from("leave_policies")
       .select("*")

@@ -64,22 +64,36 @@ async function unPassage({ href, titre }) {
 
   // Les marques sont prises dans la page : le clic, l'écran d'attente (s'il
   // apparaît) puis l'affichage du titre.
-  await contexte.addInitScript(() => {
+  //
+  // Le sondage remplace un observateur de mutations : sur la production, la
+  // silhouette d'attente apparaît bien (≈100 ms) mais l'arbre est remplacé d'un
+  // bloc, si bien que l'observateur la manquait et publiait « jamais affichée ».
+  await contexte.addInitScript((titreAttendu) => {
     window.__nav = { clic: 0, squelette: 0, affiche: 0 };
     document.addEventListener(
       "click",
       (e) => {
         const lien = e.target instanceof Element ? e.target.closest("a") : null;
-        if (lien) window.__nav.clic = performance.now();
+        if (!lien || window.__nav.clic) return;
+
+        window.__nav.clic = performance.now();
+        const minuteur = setInterval(() => {
+          const t = performance.now();
+          if (!window.__nav.squelette && document.querySelector("[data-chargement]")) {
+            window.__nav.squelette = t;
+          }
+          const main = document.querySelector("main");
+          if (main && (main.textContent || "").includes(titreAttendu)) {
+            window.__nav.affiche = t;
+            clearInterval(minuteur);
+          } else if (t - window.__nav.clic > 30_000) {
+            clearInterval(minuteur);
+          }
+        }, 20);
       },
       true
     );
-    new MutationObserver(() => {
-      if (!window.__nav.squelette && document.querySelector("[data-chargement]")) {
-        window.__nav.squelette = performance.now();
-      }
-    }).observe(document.documentElement, { childList: true, subtree: true });
-  });
+  }, titre);
 
   const page = await contexte.newPage();
   // Point de départ ≠ destination : cliquer sur le lien de la page courante ne
@@ -90,18 +104,13 @@ async function unPassage({ href, titre }) {
 
   await page.click(`aside a[href="${href}"]`);
 
-  // Le titre de la destination est le signal « page utilisable ». On lit dans
+  // Le titre de la destination est le signal « page utilisable » (lu dans
   // `main`, pas dans `h1` seul : le tableau de bord met son repère dans le
-  // sous-titre.
+  // sous-titre). L'instant est relevé dans la page, au sondage.
   try {
-    await page.waitForFunction(
-      (attendu) => {
-        const main = document.querySelector("main");
-        return Boolean(main && (main.textContent || "").includes(attendu));
-      },
-      titre,
-      { timeout: 30_000 }
-    );
+    await page.waitForFunction(() => window.__nav.affiche > 0, null, {
+      timeout: 30_000,
+    });
   } catch {
     const vu = await page.evaluate(() => {
       const h1 = document.querySelector("main h1");
@@ -117,7 +126,7 @@ async function unPassage({ href, titre }) {
       .filter((r) => r.name.includes("_rsc="));
     const deLaNavigation = rsc.filter((r) => r.startTime >= nav.clic);
     return {
-      total: performance.now() - nav.clic,
+      total: nav.affiche - nav.clic,
       squelette: nav.squelette ? nav.squelette - nav.clic : null,
       rsc: deLaNavigation.map((r) => ({
         duree: r.duration,

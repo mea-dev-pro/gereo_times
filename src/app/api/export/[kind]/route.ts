@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, isHrOrAdmin } from "@/lib/auth/session";
+import { typesConge } from "@/lib/data/referentiel";
 
 /**
  * Exports CSV réservés aux RH et aux administrateurs.
@@ -77,14 +78,15 @@ export async function GET(
   const to = isoDate(request.nextUrl.searchParams.get("to"), bounds.to);
 
   // --- Référentiels partagés -------------------------------------------------
-  const [{ data: members }, { data: profiles }, { data: types }] =
+  const [{ data: members }, { data: profiles }, types] =
     await Promise.all([
       supabase
         .from("organization_members")
         .select("id, user_id, role, job_title, hire_date, status")
         .eq("organization_id", orgId),
       supabase.from("profiles").select("id, full_name, email"),
-      supabase.from("leave_types").select("id, code, name"),
+      // Référentiel mis en cache : voir lib/data/referentiel.ts.
+      typesConge(orgId),
     ]);
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));

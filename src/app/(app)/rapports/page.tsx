@@ -28,6 +28,7 @@ import { StatCard, type StatTint } from "@/components/ui/stat-card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { FilterBar, FilterField } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/page-header";
+import { typesConge } from "@/lib/data/referentiel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatMinutes, ROLE_LABELS } from "@/lib/utils";
 
@@ -81,7 +82,7 @@ export default async function RapportsPage({
   const [
     { data: members },
     { data: profiles },
-    { data: types },
+    types,
     { data: entries },
     { data: requests },
     { data: balances },
@@ -92,11 +93,8 @@ export default async function RapportsPage({
       .eq("organization_id", orgId)
       .order("joined_at"),
     supabase.from("profiles").select("id, full_name, email"),
-    supabase
-      .from("leave_types")
-      .select("*")
-      .eq("organization_id", orgId)
-      .order("name"),
+    // Référentiel mis en cache : voir lib/data/referentiel.ts.
+    typesConge(orgId),
     supabase
       .from("time_entries")
       .select("member_id, effective_minutes, planned_minutes, variance_minutes, status")

@@ -17,6 +17,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatDateTime, joursDepuis, ROLE_LABELS } from "@/lib/utils";
 import type { Tables } from "@/types/database";
+import { typesConge } from "@/lib/data/referentiel";
 import { DecisionPanel } from "./decision-panel";
 
 export const metadata: Metadata = { title: "Validations" };
@@ -49,13 +50,15 @@ export default async function ValidationsPage() {
   const orgId = session.organization.id;
 
   const [
+    types,
     { data: requests },
     { data: adjustments },
-    { data: types },
     { data: members },
     { data: balances },
     { data: approuves },
   ] = await Promise.all([
+    // Référentiel mis en cache : voir lib/data/referentiel.ts.
+    typesConge(orgId),
     supabase
       .from("leave_requests")
       .select("*")
@@ -68,7 +71,6 @@ export default async function ValidationsPage() {
       .eq("organization_id", orgId)
       .eq("status", "pending")
       .order("created_at", { ascending: true }),
-    supabase.from("leave_types").select("*").eq("organization_id", orgId),
     supabase
       .from("organization_members")
       // Le profil voyage avec la liste : sans lui, les noms coûtaient une

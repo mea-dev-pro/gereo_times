@@ -23,6 +23,7 @@ import { StatCard, type StatTint } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatMinutes } from "@/lib/utils";
+import { typesConge } from "@/lib/data/referentiel";
 
 // Page bloquante : elle lit la session et l'heure courante à chaque requête.
 export const instant = false;
@@ -55,25 +56,21 @@ export default async function DashboardPage() {
   const peutValider = canManage(session.membership.role);
 
   const [
+    typesTous,
     { data: balances },
-    { data: leaveTypes },
     { data: weekEntries },
     { data: myRequests },
     { data: openEntry },
     { count: pendingLeaves },
     { count: pendingAdjustments },
   ] = await Promise.all([
+    // Référentiel mis en cache : voir lib/data/referentiel.ts.
+    typesConge(orgId),
     supabase
       .from("leave_balances")
       .select("*")
       .eq("organization_id", orgId)
       .eq("member_id", memberId),
-    supabase
-      .from("leave_types")
-      .select("*")
-      .eq("organization_id", orgId)
-      .eq("active", true)
-      .order("name"),
     supabase
       .from("time_entries")
       .select("*")
@@ -108,6 +105,10 @@ export default async function DashboardPage() {
           .eq("status", "pending")
       : Promise.resolve({ count: 0 }),
   ]);
+
+  // Les tuiles et les soldes ne montrent que les types encore actifs ; la
+  // désactivation se fait dans les paramètres, l'historique reste lisible.
+  const leaveTypes = typesTous.filter((t) => t.active);
 
   const typeById = new Map((leaveTypes ?? []).map((t) => [t.id, t]));
   const minutesSemaine = (weekEntries ?? []).reduce(

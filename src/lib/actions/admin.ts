@@ -1,8 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, isHrOrAdmin } from "@/lib/auth/session";
+import {
+  tagDepartements,
+  tagJoursFeries,
+  tagTypesConge,
+} from "@/lib/data/referentiel";
 import type { ActionState } from "@/lib/auth/actions";
 import type { AccrualFrequency } from "@/types/database";
 
@@ -53,7 +58,14 @@ async function guard(): Promise<
   return { ok: true, orgId: session.organization.id };
 }
 
-function refresh() {
+function refresh(tag?: string) {
+  // Les référentiels (départements, jours fériés, types de congés) vivent dans
+  // un cache partagé par organisation : sans cette invalidation, l'écran
+  // continuerait de montrer l'ancienne valeur jusqu'à la régénération
+  // quotidienne. `updateTag` expire immédiatement, donc la prochaine lecture
+  // attend la donnée fraîche — c'est ce qu'un administrateur qui vient de
+  // créer un élément doit voir.
+  if (tag) updateTag(tag);
   revalidatePath("/parametres");
   revalidatePath("/");
   revalidatePath("/conges");
@@ -87,7 +99,7 @@ export async function createDepartment(
   });
   if (error) return { error: traduire(error.message) };
 
-  refresh();
+  refresh(tagDepartements(g.orgId));
   return { success: `Département « ${name} » créé.` };
 }
 
@@ -103,7 +115,7 @@ export async function deleteDepartment(id: string): Promise<ActionState> {
     .eq("organization_id", g.orgId);
   if (error) return { error: traduire(error.message) };
 
-  refresh();
+  refresh(tagDepartements(g.orgId));
   return { success: "Département supprimé." };
 }
 
@@ -130,7 +142,7 @@ export async function createHoliday(
   });
   if (error) return { error: traduire(error.message) };
 
-  refresh();
+  refresh(tagJoursFeries(g.orgId));
   return { success: `« ${name} » ajouté au calendrier.` };
 }
 
@@ -146,7 +158,7 @@ export async function deleteHoliday(id: string): Promise<ActionState> {
     .eq("organization_id", g.orgId);
   if (error) return { error: traduire(error.message) };
 
-  refresh();
+  refresh(tagJoursFeries(g.orgId));
   return { success: "Jour férié supprimé." };
 }
 
@@ -175,7 +187,7 @@ export async function createLeaveType(
   });
   if (error) return { error: traduire(error.message) };
 
-  refresh();
+  refresh(tagTypesConge(g.orgId));
   return {
     success: `Type « ${name} » créé. Pensez à lui associer une politique d'acquisition.`,
   };
@@ -196,7 +208,7 @@ export async function toggleLeaveType(
     .eq("organization_id", g.orgId);
   if (error) return { error: traduire(error.message) };
 
-  refresh();
+  refresh(tagTypesConge(g.orgId));
   return { success: active ? "Type réactivé." : "Type désactivé." };
 }
 
