@@ -82,7 +82,11 @@ async function unPassage({ href, titre }) {
         if (!lien || window.__nav.clic) return;
 
         window.__nav.clic = performance.now();
-        const minuteur = setInterval(() => {
+        // Sondage à chaque image plutôt qu'avec un minuteur : pendant une
+        // navigation, le fil principal est occupé à rendre la page, et un
+        // `setInterval` ne reprend la main qu'après, ce qui gonflait la mesure
+        // de 200 à 300 ms.
+        const boucle = () => {
           const t = performance.now();
           if (!window.__nav.squelette && document.querySelector("[data-chargement]")) {
             window.__nav.squelette = t;
@@ -90,11 +94,11 @@ async function unPassage({ href, titre }) {
           const main = document.querySelector("main");
           if (main && (main.textContent || "").includes(titreAttendu)) {
             window.__nav.affiche = t;
-            clearInterval(minuteur);
-          } else if (t - window.__nav.clic > 30_000) {
-            clearInterval(minuteur);
+            return;
           }
-        }, 20);
+          if (t - window.__nav.clic < 30_000) requestAnimationFrame(boucle);
+        };
+        requestAnimationFrame(boucle);
       },
       true
     );

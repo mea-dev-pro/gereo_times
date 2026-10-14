@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { isHrOrAdmin, requireSession } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
 import {
   Card,
   CardContent,
@@ -29,6 +28,7 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { FilterBar, FilterField } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/page-header";
 import { typesConge } from "@/lib/data/referentiel";
+import { donneesRapports } from "@/lib/data/rapports";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatMinutes, ROLE_LABELS } from "@/lib/utils";
 
@@ -76,39 +76,17 @@ export default async function RapportsPage({
       ? params.to
       : bounds.to;
 
-  const supabase = await createClient();
   const orgId = session.organization.id;
 
-  const [
-    { data: members },
-    { data: profiles },
-    types,
-    { data: entries },
-    { data: requests },
-    { data: balances },
-  ] = await Promise.all([
-    supabase
-      .from("organization_members")
-      .select("*")
-      .eq("organization_id", orgId)
-      .order("joined_at"),
-    supabase.from("profiles").select("id, full_name, email"),
-    // Référentiel mis en cache : voir lib/data/referentiel.ts.
+  // Rapports lus via le cache navigateur (voir lib/data/rapports.ts) : la
+  // session de l'utilisateur est conservée, la RLS décide donc toujours de ce
+  // qui est lisible, et revenir sur l'écran ne repaie plus un aller-retour par
+  // table.
+  const [donnees, types] = await Promise.all([
+    donneesRapports(orgId, from, to),
     typesConge(orgId),
-    supabase
-      .from("time_entries")
-      .select("member_id, effective_minutes, planned_minutes, variance_minutes, status")
-      .eq("organization_id", orgId)
-      .gte("work_date", from)
-      .lte("work_date", to),
-    supabase
-      .from("leave_requests")
-      .select("member_id, leave_type_id, total_days, status")
-      .eq("organization_id", orgId)
-      .lte("start_date", to)
-      .gte("end_date", from),
-    supabase.from("leave_balances").select("*").eq("organization_id", orgId),
   ]);
+  const { members, profiles, entries, requests, balances } = donnees;
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
   const memberById = new Map((members ?? []).map((m) => [m.id, m]));

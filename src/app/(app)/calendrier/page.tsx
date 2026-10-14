@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { requireSession } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { absencesEquipe } from "@/lib/data/calendrier";
 import {
   Card,
   CardContent,
@@ -74,15 +74,10 @@ export default async function CalendrierPage({
     title = `${MOIS[premier.getUTCMonth()]} ${premier.getUTCFullYear()}`;
   }
 
-  const supabase = await createClient();
-  const { data: absences } = await supabase
-    .from("team_absences")
-    .select("*")
-    .gte("end_date", iso(rangeStart))
-    .lte("start_date", iso(rangeEnd))
-    .order("start_date");
-
-  const liste = (absences ?? []) as Absence[];
+  // Absences lues via le cache navigateur (voir lib/data/calendrier.ts) : la
+  // vue `team_absences` reste filtrée par la RLS, et revenir sur la même
+  // période ne coûte plus d'aller-retour vers Supabase.
+  const liste: Absence[] = await absencesEquipe(iso(rangeStart), iso(rangeEnd));
   const semaines = decouperEnSemaines(liste as AbsenceMin[], rangeStart, rangeEnd);
   const todayISO = iso(new Date());
 

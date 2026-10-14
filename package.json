@@ -18,7 +18,8 @@
     "e2e": "playwright test",
     "captures": "node scripts/captures.mjs",
     "perf": "node scripts/perf.mjs",
-    "perf:nav": "node scripts/perf-navigation.mjs"
+    "perf:nav": "node scripts/perf-navigation.mjs",
+    "perf:parcours": "node scripts/perf-parcours.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
