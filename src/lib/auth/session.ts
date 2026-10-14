@@ -13,46 +13,59 @@ export type SessionContext = {
 };
 
 /**
+ * Colonnes de la session, en une seule requête.
+ *
+ * `profiles` a besoin d'une indication explicite : `organization_members` porte
+ * deux clés étrangères vers `profiles` (`user_id` et `invited_by`), PostgREST ne
+ * peut donc pas deviner laquelle suivre.
+ */
+const SELECT_SESSION =
+  "*, organizations(*), profiles!organization_members_user_id_fkey(*)";
+
+type LigneSession = Tables<"organization_members"> & {
+  organizations: Tables<"organizations"> | null;
+  profiles: Tables<"profiles"> | null;
+};
+
+/**
  * Contexte de session : utilisateur, profil, appartenance et organisation.
  * Mémoïsé par requête grâce à `cache`, donc appelable depuis plusieurs
  * Server Components sans multiplier les allers-retours.
+ *
+ * Coût réseau : un aller-retour. Le jeton est vérifié localement par
+ * `getClaims()` (clé asymétrique, JWKS gardé en cache de module) et le profil,
+ * l'appartenance et l'organisation arrivent dans la même réponse. La version
+ * précédente enchaînait quatre allers-retours — `getUser()` puis trois requêtes
+ * en cascade — soit plusieurs centaines de millisecondes de plus par
+ * changement de page.
  */
 export const getSession = cache(async (): Promise<SessionContext | null> => {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: jeton } = await supabase.auth.getClaims();
+  const userId = jeton?.claims?.sub;
+  if (!userId) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!profile) return null;
-
-  const { data: memberships } = await supabase
+  // Le type de la base est écrit à la main, sans métadonnées de relations : la
+  // liste de colonnes passe donc en chaîne, et le résultat est décrit par
+  // `LigneSession`.
+  const { data } = await supabase
     .from("organization_members")
-    .select("*")
-    .eq("user_id", user.id)
+    .select(SELECT_SESSION as "*")
+    .eq("user_id", userId)
     .eq("status", "active")
     .order("joined_at", { ascending: true })
-    .limit(1);
-
-  const membership = memberships?.[0];
-  if (!membership) return null;
-
-  const { data: organization } = await supabase
-    .from("organizations")
-    .select("*")
-    .eq("id", membership.organization_id)
+    .limit(1)
     .maybeSingle();
-  if (!organization) return null;
+
+  const ligne = data as LigneSession | null;
+  if (!ligne?.organizations || !ligne.profiles) return null;
+
+  const { organizations: organization, profiles: profile, ...membership } = ligne;
 
   return {
-    userId: user.id,
-    email: user.email ?? profile.email,
+    userId,
+    email: jeton?.claims?.email ?? profile.email,
     profile,
     membership,
     organization,
@@ -62,10 +75,8 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
 /** L'utilisateur est-il authentifié, mais sans organisation ? (onboarding) */
 export const isAuthenticatedWithoutOrganization = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return Boolean(user);
+  const { data: jeton } = await supabase.auth.getClaims();
+  return Boolean(jeton?.claims?.sub);
 });
 
 export async function requireSession(): Promise<SessionContext> {

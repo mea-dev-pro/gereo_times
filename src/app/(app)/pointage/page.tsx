@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarClock, ClipboardList } from "lucide-react";
 import { requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import type { Tables } from "@/types/database";
 import {
   Card,
   CardContent,
@@ -36,6 +37,15 @@ type Pointage = {
   status: string;
 };
 
+/**
+ * Session de pointage encore ouverte, avec ses pauses.
+ * Les pauses arrivent dans la même réponse (`break_entries(...)`) : la pause en
+ * cours se déduit ensuite en mémoire, sans second aller-retour.
+ */
+type EntreeOuverte = Tables<"time_entries"> & {
+  break_entries: Pick<Tables<"break_entries">, "started_at" | "ended_at">[];
+};
+
 function heureCourte(iso: string) {
   return new Date(iso).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -54,54 +64,56 @@ export default async function PointagePage({
 
   const { du, au } = await searchParams;
 
-  const { data: openEntry } = await supabase
-    .from("time_entries")
-    .select("*")
-    .eq("member_id", memberId)
-    .is("clock_out", null)
-    .maybeSingle();
+  // Deux vagues d'appels au lieu de cinq : la session ouverte ramène sa pause
+  // en cours dans la même réponse, et les trois lectures indépendantes partent
+  // ensemble. Chaque aller-retour vers Supabase coûte environ 250 ms depuis un
+  // poste client : les enchaîner rendait l'écran sensiblement plus lent.
+  const [{ data: openEntry }, { data: adjustments }] = await Promise.all([
+    supabase
+      .from("time_entries")
+      .select("*, break_entries(started_at, ended_at)" as "*")
+      .eq("member_id", memberId)
+      .is("clock_out", null)
+      .maybeSingle(),
+    supabase
+      .from("time_adjustments")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
-  let breakStartedAt: string | null = null;
-  if (openEntry) {
-    const { data: pause } = await supabase
-      .from("break_entries")
-      .select("started_at")
-      .eq("time_entry_id", openEntry.id)
-      .is("ended_at", null)
-      .maybeSingle();
-    breakStartedAt = pause?.started_at ?? null;
-  }
+  // La pause en cours est la seule dont `ended_at` est vide.
+  const entreeOuverte = openEntry as EntreeOuverte | null;
+  const pauseEnCours = (entreeOuverte?.break_entries ?? []).find(
+    (b) => b.ended_at === null
+  );
+  const breakStartedAt: string | null = pauseEnCours?.started_at ?? null;
 
   // La date de la journée en cours se lit sur la session ouverte : c'est celle
   // du pointage d'arrivée. Sinon on retombe sur la date du jour.
   const aujourdHui =
-    openEntry?.work_date ?? new Date().toISOString().slice(0, 10);
+    entreeOuverte?.work_date ?? new Date().toISOString().slice(0, 10);
   const debutMois = `${aujourdHui.slice(0, 7)}-01`;
 
   const debut = du ?? debutMois;
   const fin = au ?? aujourdHui;
 
-  const { data: entries } = await supabase
-    .from("time_entries")
-    .select("*")
-    .eq("member_id", memberId)
-    .gte("work_date", debut)
-    .lte("work_date", fin)
-    .order("work_date", { ascending: false });
-
-  const { data: mois } = await supabase
-    .from("time_entries")
-    .select("work_date, effective_minutes")
-    .eq("member_id", memberId)
-    .gte("work_date", debutMois)
-    .lte("work_date", aujourdHui);
-
-  const { data: adjustments } = await supabase
-    .from("time_adjustments")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("created_at", { ascending: false })
-    .limit(10);
+  const [{ data: entries }, { data: mois }] = await Promise.all([
+    supabase
+      .from("time_entries")
+      .select("*")
+      .eq("member_id", memberId)
+      .gte("work_date", debut)
+      .lte("work_date", fin)
+      .order("work_date", { ascending: false }),
+    supabase
+      .from("time_entries")
+      .select("work_date, effective_minutes")
+      .eq("member_id", memberId)
+      .gte("work_date", debutMois)
+      .lte("work_date", aujourdHui),
+  ]);
 
   const pointages = (entries ?? []) as Pointage[];
 
@@ -212,9 +224,9 @@ export default async function PointagePage({
       />
 
       <ClockPanel
-        isOpen={Boolean(openEntry)}
+        isOpen={Boolean(entreeOuverte)}
         isOnBreak={Boolean(breakStartedAt)}
-        clockedInAt={openEntry?.clock_in ?? null}
+        clockedInAt={entreeOuverte?.clock_in ?? null}
         breakStartedAt={breakStartedAt}
         minutesEffectivesJour={minutesEffectivesJour}
         minutesPauseJour={minutesPauseJour}

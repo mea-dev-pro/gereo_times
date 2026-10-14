@@ -41,15 +41,19 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // getUser() revalide le jeton auprès du serveur auth : ne pas se fier à getSession().
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() vérifie la signature du jeton localement — clé asymétrique
+  // ES256, JWKS gardé en cache au niveau du module — là où getUser() imposait
+  // un aller-retour vers l'API d'authentification à chaque requête, donc aussi
+  // à chaque préchargement de lien. Un jeton expiré est rafraîchi avant
+  // vérification, et la vérification retombe d'elle-même sur getUser() si le
+  // projet signe en symétrique.
+  const { data: jeton } = await supabase.auth.getClaims();
+  const connecte = Boolean(jeton?.claims?.sub);
 
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-  if (!user && !isPublic) {
+  if (!connecte && !isPublic) {
     // Les routes d'API répondent en JSON avec un code, pas par une redirection
     // HTML : un client qui demande un export doit recevoir 401, pas la page de
     // connexion.
@@ -66,7 +70,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublic) {
+  if (connecte && isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

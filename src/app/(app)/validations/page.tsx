@@ -16,12 +16,25 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatDateTime, joursDepuis, ROLE_LABELS } from "@/lib/utils";
+import type { Tables } from "@/types/database";
 import { DecisionPanel } from "./decision-panel";
 
 export const metadata: Metadata = { title: "Validations" };
 
 // Page bloquante : elle lit la session et l'heure courante à chaque requête.
 export const instant = false;
+
+/**
+ * Liste des membres avec leur profil, en une seule requête.
+ * L'indication `organization_members_user_id_fkey` est nécessaire : la table
+ * porte deux clés étrangères vers `profiles` (`user_id`, `invited_by`).
+ */
+const SELECT_MEMBRES =
+  "*, profiles!organization_members_user_id_fkey(id, full_name, email)";
+
+type LigneMembre = Tables<"organization_members"> & {
+  profiles: Pick<Tables<"profiles">, "id" | "full_name" | "email"> | null;
+};
 
 /** Les deux périodes se chevauchent-elles (bornes incluses) ? */
 function chevauche(aDeb: string, aFin: string, bDeb: string, bFin: string) {
@@ -58,7 +71,9 @@ export default async function ValidationsPage() {
     supabase.from("leave_types").select("*").eq("organization_id", orgId),
     supabase
       .from("organization_members")
-      .select("id, user_id, job_title, role")
+      // Le profil voyage avec la liste : sans lui, les noms coûtaient une
+      // seconde vague d'appels, donc un aller-retour de plus avant l'affichage.
+      .select(SELECT_MEMBRES as "*")
       .eq("organization_id", orgId),
     supabase
       .from("leave_balances")
@@ -76,14 +91,13 @@ export default async function ValidationsPage() {
   const memberById = new Map((members ?? []).map((m) => [m.id, m]));
   const typeById = new Map((types ?? []).map((t) => [t.id, t]));
 
-  const userIds = Array.from(new Set((members ?? []).map((m) => m.user_id)));
-  const { data: profiles } = userIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", userIds)
-    : { data: [] };
-  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const profileById = new Map<
+    string,
+    Pick<Tables<"profiles">, "id" | "full_name" | "email">
+  >();
+  for (const m of (members ?? []) as LigneMembre[]) {
+    if (m.profiles) profileById.set(m.user_id, m.profiles);
+  }
 
   const membre = (memberId: string) => memberById.get(memberId);
   function nomDe(memberId: string) {

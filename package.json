@@ -16,7 +16,9 @@
     "db:clean-test": "node scripts/clean-test-data.mjs",
     "e2e:auth": "node scripts/e2e-auth.mjs",
     "e2e": "playwright test",
-    "captures": "node scripts/captures.mjs"
+    "captures": "node scripts/captures.mjs",
+    "perf": "node scripts/perf.mjs",
+    "perf:nav": "node scripts/perf-navigation.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

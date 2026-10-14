@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+/**
+ * Mesure les navigations **entre pages** (clic sur un lien du rail), par
+ * opposition à `perf.mjs` qui mesure des chargements complets.
+ *
+ *   node scripts/perf-navigation.mjs [url] [chemin…]
+ *
+ * À exécuter sur un serveur de production (`npm run build && npm run start`) :
+ * en développement, la compilation à la demande fausse tout.
+ *
+ * Pour chaque destination, dans un contexte neuf (session de recette admin) :
+ *   1. ouverture de la page d'accueil, puis clic sur le lien du rail ;
+ *   2. temps « clic → le titre de la page est affiché », mesuré dans le
+ *      navigateur (performance.now), pas depuis Node ;
+ *   3. requêtes RSC de la navigation (`?_rsc=`) : durée et temps de réponse,
+ *      ce qui sépare le travail serveur du travail client ;
+ *   4. nombre de requêtes réseau déclenchées par la navigation.
+ *
+ * La médiane de trois passages est publiée : un premier passage à froid
+ * raconterait surtout l'effet du préchargement.
+ */
+
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { chromium } from "playwright";
+
+const [, , baseURL = "http://localhost:3000", ...args] = process.argv;
+
+const CIBLES = [
+  { href: "/", titre: "Bonjour" },
+  { href: "/pointage", titre: "Pointage" },
+  { href: "/conges", titre: "Mes congés" },
+  { href: "/calendrier", titre: "Calendrier d'équipe" },
+  { href: "/notifications", titre: "Notifications" },
+  { href: "/validations", titre: "Validations" },
+  { href: "/equipe", titre: "Équipe" },
+  { href: "/rapports", titre: "Rapports RH" },
+  { href: "/parametres", titre: "Paramètres RH" },
+].filter((c) => !args.length || args.includes(c.href));
+
+const PASSAGES = 3;
+// `PERF_STATE` permet de viser un autre jeu de cookies que celui de
+// localhost — utile pour mesurer la production, dont le domaine diffère.
+const session = process.env.PERF_STATE
+  ? process.env.PERF_STATE
+  : join(process.cwd(), "tests", ".auth", "admin.json");
+
+const navigateur = await chromium.launch();
+
+function mediane(valeurs) {
+  const triees = [...valeurs].sort((a, b) => a - b);
+  const milieu = Math.floor(triees.length / 2);
+  return triees.length % 2 ? triees[milieu] : (triees[milieu - 1] + triees[milieu]) / 2;
+}
+
+async function unPassage({ href, titre }) {
+  const contexte = await navigateur.newContext({
+    baseURL,
+    viewport: { width: 1440, height: 900 },
+    locale: "fr-FR",
+    timezoneId: "Indian/Antananarivo",
+    storageState: existsSync(session) ? session : undefined,
+  });
+
+  // Les marques sont prises dans la page : le clic, l'écran d'attente (s'il
+  // apparaît) puis l'affichage du titre.
+  await contexte.addInitScript(() => {
+    window.__nav = { clic: 0, squelette: 0, affiche: 0 };
+    document.addEventListener(
+      "click",
+      (e) => {
+        const lien = e.target instanceof Element ? e.target.closest("a") : null;
+        if (lien) window.__nav.clic = performance.now();
+      },
+      true
+    );
+    new MutationObserver(() => {
+      if (!window.__nav.squelette && document.querySelector("[data-chargement]")) {
+        window.__nav.squelette = performance.now();
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  });
+
+  const page = await contexte.newPage();
+  // Point de départ ≠ destination : cliquer sur le lien de la page courante ne
+  // provoque aucune navigation, la mesure serait vide.
+  const depart = href === "/pointage" ? "/conges" : "/pointage";
+  await page.goto(depart, { waitUntil: "load" });
+  await page.waitForSelector("main h1");
+
+  await page.click(`aside a[href="${href}"]`);
+
+  // Le titre de la destination est le signal « page utilisable ». On lit dans
+  // `main`, pas dans `h1` seul : le tableau de bord met son repère dans le
+  // sous-titre.
+  try {
+    await page.waitForFunction(
+      (attendu) => {
+        const main = document.querySelector("main");
+        return Boolean(main && (main.textContent || "").includes(attendu));
+      },
+      titre,
+      { timeout: 30_000 }
+    );
+  } catch {
+    const vu = await page.evaluate(() => {
+      const h1 = document.querySelector("main h1");
+      return `${location.pathname} — « ${(h1?.textContent ?? "").trim().slice(0, 40)} »`;
+    });
+    throw new Error(`Destination ${href} : « ${titre} » jamais affiché (vu : ${vu})`);
+  }
+
+  const mesures = await page.evaluate(() => {
+    const nav = window.__nav;
+    const rsc = performance
+      .getEntriesByType("resource")
+      .filter((r) => r.name.includes("_rsc="));
+    const deLaNavigation = rsc.filter((r) => r.startTime >= nav.clic);
+    return {
+      total: performance.now() - nav.clic,
+      squelette: nav.squelette ? nav.squelette - nav.clic : null,
+      rsc: deLaNavigation.map((r) => ({
+        duree: r.duration,
+        reponse: r.responseStart - r.startTime,
+        poids: r.transferSize,
+      })),
+      requetes: performance.getEntriesByType("resource").filter((r) => r.startTime >= nav.clic).length,
+    };
+  });
+
+  await contexte.close();
+  return mesures;
+}
+
+const resultats = [];
+for (const cible of CIBLES) {
+  const passages = [];
+  for (let i = 0; i < PASSAGES; i++) passages.push(await unPassage(cible));
+
+  const total = mediane(passages.map((p) => p.total));
+  const squelette = passages.map((p) => p.squelette).filter((v) => v !== null);
+  const rsc = passages.map((p) => p.rsc.reduce((s, r) => s + r.duree, 0));
+  const serveur = passages.map((p) =>
+    p.rsc.reduce((s, r) => s + r.reponse, 0)
+  );
+  const requetes = mediane(passages.map((p) => p.requetes));
+
+  resultats.push({ cible: cible.href, total, squelette: squelette.length ? mediane(squelette) : null, rsc: mediane(rsc), serveur: mediane(serveur), requetes });
+
+  console.log(
+    `  ${cible.href.padEnd(14)} clic → affiché ${String(Math.round(total)).padStart(4)} ms` +
+      `   | attente affichée ${String(squelette.length ? Math.round(mediane(squelette)) : "jamais").padStart(6)}` +
+      `   | requêtes RSC ${String(Math.round(mediane(rsc))).padStart(4)} ms` +
+      ` (dont réponse ${String(Math.round(mediane(serveur))).padStart(4)} ms)` +
+      `   | ${requetes} requête(s) réseau`
+  );
+}
+
+const moyenne = (valeurs) => valeurs.reduce((s, v) => s + v, 0) / valeurs.length;
+console.log(
+  `\n  moyenne : clic → affiché ${Math.round(moyenne(resultats.map((r) => r.total)))} ms` +
+    ` | requêtes RSC ${Math.round(moyenne(resultats.map((r) => r.rsc)))} ms` +
+    ` | ${moyenne(resultats.map((r) => r.requetes)).toFixed(1)} requêtes réseau par navigation\n`
+);
+
+await navigateur.close();

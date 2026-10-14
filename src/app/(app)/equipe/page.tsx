@@ -17,7 +17,7 @@ import { SearchInput } from "@/components/search-input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
-import type { MemberStatus, OrgRole } from "@/types/database";
+import type { MemberStatus, OrgRole, Tables } from "@/types/database";
 import { InviteForm, type ManagerOption } from "./invite-form";
 import { MemberRowActions, RevokeInvitationButton } from "./member-actions";
 
@@ -37,6 +37,18 @@ type Membre = {
   hire_date: string | null;
 };
 
+/**
+ * Colonnes de la liste des membres, profil inclus.
+ * `profiles` a besoin de l'indication explicite `organization_members_user_id_fkey` :
+ * la table porte deux clés étrangères vers `profiles` (`user_id`, `invited_by`).
+ */
+const SELECT_MEMBRES =
+  "*, profiles!organization_members_user_id_fkey(id, full_name, email)";
+
+type LigneMembre = Tables<"organization_members"> & {
+  profiles: Pick<Tables<"profiles">, "id" | "full_name" | "email"> | null;
+};
+
 export default async function EquipePage({
   searchParams,
 }: {
@@ -51,11 +63,14 @@ export default async function EquipePage({
   const supabase = await createClient();
   const orgId = session.organization.id;
 
-  const [{ data: members }, { data: invitations }, { data: departments }] =
+  const [{ data: membres }, { data: invitations }, { data: departments }] =
     await Promise.all([
       supabase
         .from("organization_members")
-        .select("*")
+        // Le profil du membre arrive dans la même réponse : sans cette
+        // jointure, les noms demandaient une seconde vague d'appels, soit un
+        // aller-retour de plus (≈250 ms) avant d'afficher l'écran.
+        .select(SELECT_MEMBRES as "*")
         .eq("organization_id", orgId)
         .order("joined_at"),
       supabase
@@ -70,15 +85,15 @@ export default async function EquipePage({
         .eq("organization_id", orgId),
     ]);
 
-  const userIds = Array.from(new Set((members ?? []).map((m) => m.user_id)));
-  const { data: profiles } = userIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", userIds)
-    : { data: [] };
+  const members = (membres ?? []) as LigneMembre[];
 
-  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const profileById = new Map<
+    string,
+    Pick<Tables<"profiles">, "id" | "full_name" | "email">
+  >();
+  for (const m of members) {
+    if (m.profiles) profileById.set(m.user_id, m.profiles);
+  }
   const departmentById = new Map((departments ?? []).map((d) => [d.id, d]));
   const memberById = new Map((members ?? []).map((m) => [m.id, m]));
 
