@@ -1,10 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, isHrOrAdmin } from "@/lib/auth/session";
+import { origineRequete } from "@/lib/http";
 import type { ActionState } from "@/lib/auth/actions";
 import type { OrgRole } from "@/types/database";
 
@@ -59,11 +59,8 @@ export async function inviteMember(
   revalidatePath("/equipe");
 
   // --- Production du lien d'activation ---------------------------------------
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto =
-    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const redirectTo = `${proto}://${host}/auth/confirmer`;
+  // Le domaine visité, pas celui vu par le serveur : voir `origineRequete`.
+  const redirectTo = `${await origineRequete()}/auth/confirmer`;
 
   try {
     const admin = createAdminClient();

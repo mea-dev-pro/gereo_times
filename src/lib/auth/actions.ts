@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { origineRequete } from "@/lib/http";
 
 export type ActionState = {
   error?: string;
@@ -78,10 +79,17 @@ export async function signUp(
 
   const supabase = await createClient();
 
+  // Sans `emailRedirectTo`, Supabase retombe sur sa « Site URL » : en
+  // production, le lien de confirmation reçu par courriel mènerait alors à
+  // l'adresse de développement (localhost) et le compte ne pourrait jamais
+  // être confirmé.
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: `${await origineRequete()}/auth/confirmer`,
+    },
   });
 
   if (error) return { error: traduire(error.message) };
