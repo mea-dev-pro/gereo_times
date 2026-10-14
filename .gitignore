@@ -44,6 +44,9 @@ yarn-error.log*
 next-env.d.ts
 
 # Playwright
-/tests/.auth/
+# Les sessions sont liées à une origine : `.auth` sert localhost, et tout autre
+# jeu de cookies (par exemple `.auth-prod` pour rejouer la suite contre le
+# domaine public) reste hors du dépôt.
+/tests/.auth*/
 /test-results/
 /playwright-report/

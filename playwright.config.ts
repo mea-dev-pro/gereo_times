@@ -13,6 +13,13 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
+/**
+ * Dossier des sessions enregistrées. Les cookies sont liés à une origine : pour
+ * rejouer la suite contre un domaine public, régénérer un jeu de sessions pour
+ * ce domaine et pointer `E2E_ETAT` dessus (voir DEPLOIEMENT.md).
+ */
+const ETAT = process.env.E2E_ETAT ?? "tests/.auth";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 60_000,
@@ -37,19 +44,19 @@ export default defineConfig({
     {
       name: "employe",
       testMatch: /employe\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], storageState: "tests/.auth/employe.json" },
+      use: { ...devices["Desktop Chrome"], storageState: `${ETAT}/employe.json` },
     },
     {
       name: "admin",
       testMatch: /(admin|theme)\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], storageState: "tests/.auth/admin.json" },
+      use: { ...devices["Desktop Chrome"], storageState: `${ETAT}/admin.json` },
     },
     {
       // Critère UX-06 du PRD : ordre de tabulation, focus visible, dialogues
       // utilisables au clavier. Le compte administrateur voit tous les écrans.
       name: "clavier",
       testMatch: /clavier\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], storageState: "tests/.auth/admin.json" },
+      use: { ...devices["Desktop Chrome"], storageState: `${ETAT}/admin.json` },
     },
     {
       // Critère UX-05 du PRD : aucun débordement horizontal, actions critiques
@@ -62,7 +69,7 @@ export default defineConfig({
         deviceScaleFactor: 3,
         isMobile: true,
         hasTouch: true,
-        storageState: "tests/.auth/admin.json",
+        storageState: `${ETAT}/admin.json`,
       },
     },
     {
@@ -78,7 +85,7 @@ export default defineConfig({
         deviceScaleFactor: 3,
         isMobile: true,
         hasTouch: true,
-        storageState: "tests/.auth/admin.json",
+        storageState: `${ETAT}/admin.json`,
       },
     },
     {
@@ -89,7 +96,7 @@ export default defineConfig({
         viewport: { width: 834, height: 1112 },
         deviceScaleFactor: 2,
         hasTouch: true,
-        storageState: "tests/.auth/admin.json",
+        storageState: `${ETAT}/admin.json`,
       },
     },
     {
@@ -98,7 +105,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 900 },
-        storageState: "tests/.auth/admin.json",
+        storageState: `${ETAT}/admin.json`,
       },
     },
   ],
