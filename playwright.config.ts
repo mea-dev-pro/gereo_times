@@ -65,5 +65,41 @@ export default defineConfig({
         storageState: "tests/.auth/admin.json",
       },
     },
+    {
+      // Trois largeurs, un seul fichier de tests : le rail de navigation doit
+      // être replié sous 1024 px et permanent au-dessus. Les projets sont
+      // séparés — et non un seul projet qui changerait de viewport en cours de
+      // route — pour qu'un échec désigne la largeur fautive.
+      name: "telephone",
+      testMatch: /responsive\.spec\.ts/,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+        storageState: "tests/.auth/admin.json",
+      },
+    },
+    {
+      name: "tablette",
+      testMatch: /responsive\.spec\.ts/,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 834, height: 1112 },
+        deviceScaleFactor: 2,
+        hasTouch: true,
+        storageState: "tests/.auth/admin.json",
+      },
+    },
+    {
+      name: "bureau",
+      testMatch: /responsive\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+        storageState: "tests/.auth/admin.json",
+      },
+    },
   ],
 });

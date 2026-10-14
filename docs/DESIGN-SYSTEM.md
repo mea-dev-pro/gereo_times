@@ -88,6 +88,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `SearchInput` | `search-input` | client — filtre par l'URL |
 | `ThemeToggle` | `theme-toggle` | client |
 | `Dialog` | `ui/dialog` | client — `<dialog>` natif |
+| `RailNavigation` | `rail-navigation` | client — rail permanent au-dessus de 1024 px, panneau escamotable en dessous |
 | `ToastProvider`, `useToast` | `ui/toast` | client |
 
 `StatusBadge` et `EmptyState` sont ré-exportés depuis `ui/badge` et `ui/alert` :
@@ -166,6 +167,36 @@ export default async function Page({ searchParams }) {
 
 Le contrôle de rôle se fait **côté serveur**, avant toute lecture de données.
 Masquer une entrée de navigation n'est pas une protection.
+
+### Rail de navigation et responsive
+
+Le seuil est celui de Tailwind : `lg`, soit 1024 px. Au-dessus, le rail est
+affiché en permanence (256 px, colonne de gauche) et rien ne change. En dessous —
+téléphone et tablette — il est replié derrière un bouton `Menu` de 44 px de haut
+dans une barre collante en haut d'écran, qui porte aussi la marque et le nom de
+l'organisation.
+
+Trois décisions à connaître avant de toucher à ce composant :
+
+- **Le panneau reste dans le flux**, sous la barre, et n'est pas une fenêtre
+  par-dessus le contenu. Aucun piégeage du focus n'est donc nécessaire, rien
+  n'est masqué derrière une couche, et le reste de la page demeure atteignable au
+  clavier. Une modale pour une navigation coûterait ces garanties-là.
+- **Le nom accessible du bouton est stable** (`Menu` / `Fermer`, par
+  `aria-label`) : le compteur de notifications qu'il porte est décoratif, sinon
+  le bouton s'appellerait « Menu 3 non lue(s) » et tout ce qui s'appuie sur son
+  nom deviendrait fragile.
+- **La fermeture est événementielle** : le clic dans le panneau et la touche
+  Échap replient, sans effet qui recopierait l'URL dans l'état (règle
+  `react-hooks/set-state-in-effect` du compilateur React — voir la fiche
+  correspondante). Le panneau n'a pas à être refermé au changement de page : il
+  l'est déjà au clic sur l'entrée.
+
+Vérification : `tests/e2e/responsive.spec.ts`, joué par trois projets Playwright
+— `telephone` (390 px), `tablette` (834 px), `bureau` (1440 px). Chaque test
+lit la largeur réelle pour décider de ce qui est attendu, de sorte qu'il affirme
+quelque chose aux trois largeurs plutôt que de s'ignorer là où il ne s'applique
+pas. `tests/e2e/mobile.spec.ts` couvre la cible tactile et les deux fermetures.
 
 ---
 

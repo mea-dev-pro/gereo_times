@@ -2,11 +2,8 @@ import Link from "next/link";
 import { canManage, isHrOrAdmin, requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
-import {
-  NavLinks,
-  type NavGroup,
-  type NavItem,
-} from "@/components/nav-links";
+import { NavLinks, type NavGroup, type NavItem } from "@/components/nav-links";
+import { RailNavigation } from "@/components/rail-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ToastProvider } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -93,8 +90,14 @@ export default async function AppLayout({
         >
           Aller au contenu
         </a>
-      <aside className="no-print border-b border-border bg-surface lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="px-5 pb-2 pt-4">
+      <RailNavigation
+        organisation={session.organization.name}
+        nonLues={unreadCount ?? 0}
+      >
+        {/* Sur téléphone et tablette, la marque et l'organisation vivent dans la
+            barre du haut : les répéter ici les afficherait deux fois une fois le
+            panneau ouvert. */}
+        <div className="hidden px-5 pb-2 pt-4 lg:block">
           <Link
             href="/"
             className="text-lg font-semibold tracking-tight text-content"
@@ -128,7 +131,7 @@ export default async function AppLayout({
             </Button>
           </form>
         </div>
-      </aside>
+      </RailNavigation>
 
         {/* tabIndex -1 : cible du lien d'évitement, donc focalisable par le
             fragment d'URL sans entrer dans l'ordre de tabulation. */}

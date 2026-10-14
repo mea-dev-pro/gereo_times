@@ -41,8 +41,9 @@ const PUBLICS = [
 ];
 
 const LARGEURS = [
-  { nom: "1440", viewport: { width: 1440, height: 900 }, mobile: false },
-  { nom: "390", viewport: { width: 390, height: 844 }, mobile: true },
+  { nom: "1440", viewport: { width: 1440, height: 900 }, mobile: false, menu: false },
+  { nom: "834", viewport: { width: 834, height: 1112 }, mobile: false, menu: true },
+  { nom: "390", viewport: { width: 390, height: 844 }, mobile: true, menu: true },
 ];
 
 const navigateur = await chromium.launch();
@@ -80,6 +81,24 @@ for (const largeur of LARGEURS) {
     octets += statSync(fichier).size;
     total++;
     console.log(`  ${largeur.nom.padStart(4)}  ${nom}`);
+  }
+
+  // Sous 1024 px le rail est replié : sa version ouverte est un état à part
+  // entière, invisible autrement dans la revue visuelle.
+  if (largeur.menu) {
+    await page.goto("/");
+    await page.locator("main").first().waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.locator("#rail-navigation").waitFor({ state: "visible" });
+    await page.evaluate(() => {
+      document.querySelectorAll("nextjs-portal").forEach((el) => el.remove());
+    });
+    await page.waitForTimeout(400);
+    const fichier = join(dossier, "menu-ouvert.jpg");
+    await page.screenshot({ path: fichier, fullPage: true, type: "jpeg", quality: 82 });
+    octets += statSync(fichier).size;
+    total++;
+    console.log(`  ${largeur.nom.padStart(4)}  menu-ouvert`);
   }
 
   await contexte.close();
