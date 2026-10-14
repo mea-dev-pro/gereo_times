@@ -114,7 +114,11 @@ export function RailNavigation({
         ref={panneau}
         className={cn(
           "no-print border-b border-border bg-surface",
-          "lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r",
+          // Sur téléphone le panneau prend toute la largeur ; à partir de la
+          // tablette il se cale à 320 px, largeur d'un rail, plutôt que de
+          // s'étirer sur 800 px de vide.
+          "sm:max-w-80",
+          "lg:flex lg:w-64 lg:max-w-none lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r",
           // `hidden` sous `lg`, `lg:flex` au-dessus : Tailwind place les
           // variantes après les utilitaires de base, donc le rail reste
           // affiché en permanence sur grand écran quel que soit l'état.

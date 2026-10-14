@@ -95,9 +95,11 @@ test.describe("Responsive — rail de navigation", () => {
       // Rail permanent : largeur fixe, il ne bouge pas d'un écran à l'autre.
       expect(boite!.width).toBe(256);
     } else {
-      // Panneau : il prend la largeur disponible, sans la dépasser.
-      expect(boite!.width).toBeLessThanOrEqual(largeur(page) + 1);
-      expect(boite!.width).toBeGreaterThan(largeur(page) - 40);
+      // Panneau : toute la largeur sur téléphone, 320 px à partir de la
+      // tablette (seuil `sm` de Tailwind), sans jamais dépasser l'écran.
+      const attendu = largeur(page) >= 640 ? 320 : largeur(page);
+      expect(boite!.width).toBeLessThanOrEqual(Math.min(attendu, largeur(page)) + 1);
+      expect(boite!.width).toBeGreaterThan(attendu - 2);
     }
   });
 
