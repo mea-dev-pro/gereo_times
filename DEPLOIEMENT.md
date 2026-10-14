@@ -182,6 +182,30 @@ npm run e2e:auth && npm run e2e
 
 ## 4. Vérifications après déploiement
 
+La suite complète se rejoue contre le domaine public, en deux variables
+d'environnement : `E2E_BASE_URL` pour l'adresse, `E2E_ETAT` pour le dossier des
+sessions — les cookies sont liés à une origine, donc les sessions de
+`tests/.auth` (localhost) ne valent pas pour le domaine public.
+
+```bash
+E2E_BASE_URL=https://gereotimes.vercel.app \
+E2E_ETAT=tests/.auth-prod \
+npx playwright test --project=telephone --project=tablette --project=bureau --project=mobile
+```
+
+`tests/.auth-prod` s'obtient en recopiant `tests/.auth/*.json` en remplaçant le
+champ `domain` des cookies par `.gereotimes.vercel.app` et `secure` par `true` ;
+le dossier est hors du dépôt (`.gitignore` couvre `/tests/.auth*/`).
+
+**Quels projets rejouer en production.** `telephone`, `tablette`, `bureau`,
+`mobile` et `public` ne font que lire : ils se rejouent sans risque. `admin`,
+`employe` et `clavier` écrivent en base (pointage, demandes de congé) — les
+rejouer en production y laisse des traces, à ne faire qu'en connaissance de
+cause.
+
+Pour rejouer la suite complète contre un domaine, il faut en plus fournir les
+mots de passe des comptes de recette, ce qui régénère les sessions :
+
 ```bash
 E2E_BASE_URL=https://votre-domaine.mg \
 E2E_ADMIN_PASSWORD='…' E2E_EMPLOYE_PASSWORD='…' \

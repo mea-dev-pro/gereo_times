@@ -85,11 +85,23 @@ test.describe("Mobile — accès aux actions", () => {
       .first();
     await expect(action).toBeVisible();
 
-    // Le bouton doit tenir dans la largeur de l'écran.
-    const boite = await action.boundingBox();
-    expect(boite).not.toBeNull();
-    expect(boite!.x).toBeGreaterThanOrEqual(0);
-    expect(boite!.x + boite!.width).toBeLessThanOrEqual(390 + 1);
+    // Le bouton doit tenir dans la largeur de l'écran. La mesure est rejouée
+    // jusqu'à obtenir une boîte : l'horloge du pointage redessine le panneau
+    // chaque seconde, et un relevé unique peut tomber entre deux rendus et
+    // rendre `null` — ce n'est pas un débordement, seulement un instant sans
+    // élément.
+    await expect
+      .poll(
+        async () => {
+          const boite = await action.boundingBox();
+          if (!boite) return null;
+          return boite.x >= 0 && boite.x + boite.width <= 390 + 1
+            ? "dans l'écran"
+            : `hors écran : x=${Math.round(boite.x)}, largeur=${Math.round(boite.width)}`;
+        },
+        { timeout: 10_000 }
+      )
+      .toBe("dans l'écran");
   });
 
   test("la navigation reste utilisable", async ({ page }) => {
