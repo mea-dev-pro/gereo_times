@@ -90,6 +90,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `ThemeToggle` | `theme-toggle` | client |
 | `Dialog` | `ui/dialog` | client — `<dialog>` natif |
 | `AppShell` | `app-shell` | client — barre du haut, rail permanent au-dessus de 1024 px, tiroir coulissant en dessous, contenu inerte tant qu'il est recouvert |
+| `AuthShell`, `AuthCard` | `auth-shell` | serveur — habillage des écrans publics (marque, colonne, carte) |
 | `ToastProvider`, `useToast` | `ui/toast` | client |
 
 `StatusBadge` et `EmptyState` sont ré-exportés depuis `ui/badge` et `ui/alert` :

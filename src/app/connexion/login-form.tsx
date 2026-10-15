@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { signIn, type ActionState } from "@/lib/auth/actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,15 @@ export function LoginForm({ next }: { next: string }) {
           autoComplete="current-password"
         />
       </div>
+
+      <p className="text-right">
+        <Link
+          href="/mot-de-passe-oublie"
+          className="text-xs font-medium text-brand-strong hover:underline"
+        >
+          Mot de passe oublié ?
+        </Link>
+      </p>
 
       <Button
         type="submit"

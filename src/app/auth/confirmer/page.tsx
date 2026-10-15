@@ -1,84 +1,30 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import {
+  adoptHashSession,
+  attendreSession,
+  messageErreurFragment,
+  useErreurFragment,
+} from "@/lib/auth/lien-session";
 import { Alert } from "@/components/ui/alert";
 
 /**
  * Point d'arrivée des liens d'activation (invitation) et de connexion.
  *
- * Supabase renvoie selon les cas :
- *  - les jetons dans le fragment d'URL (#access_token=…&refresh_token=…)
- *  - un code d'échange en paramètre (?code=…, flux PKCE)
- *  - une erreur dans le fragment (#error=…&error_code=…)
- *
- * Le client @supabase/ssr ne traite QUE le second cas : les jetons du fragment
- * doivent être posés explicitement via setSession, sinon la session n'est
- * jamais ouverte. On couvre donc les deux.
+ * Le traitement du lien lui-même — jetons du fragment, code d'échange PKCE,
+ * message d'échec — vit dans `lib/auth/lien-session` : la page de
+ * réinitialisation de mot de passe s'appuie sur les mêmes fonctions.
  */
 
-function readHash(): URLSearchParams | null {
-  if (typeof window === "undefined") return null;
-  const raw = window.location.hash.startsWith("#")
-    ? window.location.hash.slice(1)
-    : window.location.hash;
-  return raw ? new URLSearchParams(raw) : null;
-}
-
-/** Message porté par le fragment d'URL, s'il annonce un échec. */
-function messageErreurFragment(): string | null {
-  const hash = readHash();
-  if (!hash) return null;
-
-  if (hash.get("error_code") === "otp_expired") {
-    return "Ce lien a déjà été utilisé ou a expiré. Demandez une nouvelle invitation.";
-  }
-  if (hash.get("error_description")) {
-    return decodeURIComponent(hash.get("error_description") as string);
-  }
-  if (hash.get("error")) {
-    return "Ce lien n'est plus valide. Demandez une nouvelle invitation.";
-  }
-  return null;
-}
-
-/** Le fragment d'URL ne bouge pas sans rechargement : rien à observer. */
-const SANS_ABONNEMENT = () => () => {};
-const ERREUR_ABSENTE = () => null;
-
-async function adoptHashSession(supabase: SupabaseClient): Promise<boolean> {
-  const hash = readHash();
-  if (!hash) return false;
-
-  const accessToken = hash.get("access_token");
-  const refreshToken = hash.get("refresh_token");
-  if (!accessToken || !refreshToken) return false;
-
-  const { error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-  if (error) return false;
-
-  // Les jetons ont rempli leur office : on nettoie l'URL.
-  window.history.replaceState(null, "", window.location.pathname);
-  return true;
-}
+const DEMANDER_UNE_INVITATION = "Demandez une nouvelle invitation.";
 
 export default function ConfirmerPage() {
   const router = useRouter();
   const [erreurSession, setErreurSession] = useState<string | null>(null);
-
-  // L'erreur du fragment est décidée par le serveur d'authentification : elle
-  // est donc lue comme une source externe, avec un instantané nul côté serveur,
-  // sinon le HTML du serveur (sans fragment) divergeait de celui du navigateur.
-  const erreurFragment = useSyncExternalStore(
-    SANS_ABONNEMENT,
-    messageErreurFragment,
-    ERREUR_ABSENTE
-  );
+  const erreurFragment = useErreurFragment(DEMANDER_UNE_INVITATION);
   const error = erreurFragment ?? erreurSession;
 
   useEffect(() => {
@@ -86,7 +32,7 @@ export default function ConfirmerPage() {
     let finished = false;
 
     // Un fragment porteur d'erreur prime : inutile d'ouvrir une session.
-    if (messageErreurFragment()) return;
+    if (messageErreurFragment(DEMANDER_UNE_INVITATION)) return;
 
     const go = () => {
       if (finished) return;
@@ -109,13 +55,9 @@ export default function ConfirmerPage() {
       }
 
       // 2. Code d'échange ou session déjà en cookies (flux PKCE)
-      for (let attempt = 0; attempt < 12; attempt++) {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          go();
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 400));
+      if (await attendreSession(supabase)) {
+        go();
+        return;
       }
 
       if (!finished) {

@@ -26,7 +26,18 @@ const ECRANS = [
   "/parametres",
 ];
 
-const PUBLICS = ["/connexion", "/inscription"];
+/**
+ * Écrans publics, avec ce qu'on doit y trouver. `/auth/reinitialiser` affiche
+ * un état de traitement, puis un message d'erreur — jamais de formulaire tant
+ * qu'aucune session n'est ouverte ; on y attend donc simplement le contenu
+ * principal.
+ */
+const PUBLICS: { chemin: string; attendu: string }[] = [
+  { chemin: "/connexion", attendu: "form" },
+  { chemin: "/inscription", attendu: "form" },
+  { chemin: "/mot-de-passe-oublie", attendu: "form" },
+  { chemin: "/auth/reinitialiser", attendu: "main" },
+];
 
 async function mesure(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
@@ -60,10 +71,10 @@ test.describe("Mobile — débordement horizontal", () => {
 test.describe("Mobile — débordement horizontal (écrans publics)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  for (const chemin of PUBLICS) {
+  for (const { chemin, attendu } of PUBLICS) {
     test(`aucun débordement sur ${chemin}`, async ({ page }) => {
       await page.goto(chemin);
-      await expect(page.locator("form").first()).toBeVisible();
+      await expect(page.locator(attendu).first()).toBeVisible();
 
       const { scroll, client } = await mesure(page);
       expect(

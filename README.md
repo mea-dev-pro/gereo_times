@@ -145,6 +145,7 @@ src/
 scripts/apply-migrations.mjs   migrations + état du schéma
 scripts/captures.mjs          captures d'écran (revue visuelle)
 scripts/perf.mjs              mesures de performance par écran
+scripts/verify-reset-mot-de-passe.mjs   chaîne de réinitialisation, de bout en bout
 ```
 
 ### Choix structurants
@@ -177,7 +178,7 @@ npm run db:verify    # aucune dépendance externe : ni Docker, ni serveur Postgr
 Le script exécute les migrations contre un vrai PostgreSQL 18 (PGlite / WASM,
 avec `btree_gist` et `pgcrypto`), puis déroule un scénario complet **en rôle non
 privilégié** — condition indispensable pour que les policies RLS soient
-réellement appliquées et non contournées. 46 contrôles, 0 échec. Couverture :
+réellement appliquées et non contournées. 71 contrôles, 0 échec. Couverture :
 
 - exécution des 3 migrations, 16 tables, RLS active sur les 16
 - **isolation RLS** : un employé ne voit ni les pointages ni les demandes d'un
@@ -193,6 +194,19 @@ réellement appliquées et non contournées. 46 contrôles, 0 échec. Couverture
 
 L'application compile et se construit sans erreur (`npm run build`), et les
 pages publiques ont été vérifiées dans un navigateur.
+
+La chaîne de réinitialisation de mot de passe dispose de sa propre vérification,
+serveur démarré — elle crée un compte jetable, demande un lien à l'API
+d'administration, choisit un nouveau mot de passe dans le navigateur, prouve par
+l'API que l'ancien ne fonctionne plus, puis supprime le compte :
+
+```bash
+node scripts/verify-reset-mot-de-passe.mjs http://localhost:3000
+```
+
+Elle contrôle au passage que Supabase accepte l'adresse de retour
+(`/auth/reinitialiser`) : c'est le point qui casse silencieusement un envoi de
+lien quand la liste blanche du projet n'a pas été mise à jour.
 
 ---
 
@@ -219,6 +233,10 @@ pages publiques ont été vérifiées dans un navigateur.
 - **notifications** : fil interne avec compteur de non-lues, alimenté par les
   RPC métier ; table servant de **boîte d'envoi email** (Resend), avec état
   d'expédition et trace d'échec en base
+- **mot de passe oublié** : demande depuis l'écran de connexion, lien à usage
+  unique envoyé par Supabase Auth, choix d'un nouveau mot de passe sur
+  `/auth/reinitialiser` — la réponse ne dit jamais si l'adresse correspond à un
+  compte
 - **acquisition planifiée** : tâche quotidienne Vercel (`/api/cron/quotidien`)
   qui crédite le mois écoulé pour chaque organisation dans son fuseau horaire,
   puis dépile les notifications en attente — idempotente, donc un jour manqué

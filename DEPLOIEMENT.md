@@ -34,11 +34,22 @@ Le pooler exige l'utilisateur `postgres.<référence-du-projet>`, pas `postgres`
 Supabase → **Authentication → URL Configuration** :
 
 - **Site URL** : `https://votre-domaine.mg`
-- **Redirect URLs** : ajoutez `https://votre-domaine.mg/auth/confirmer` **et**
-  `http://localhost:3000/auth/confirmer` (pour le développement)
+- **Redirect URLs** : ajoutez `https://votre-domaine.mg/auth/confirmer`, puis
+  `https://votre-domaine.mg/auth/reinitialiser` **et** les deux mêmes adresses en
+  `http://localhost:3000/…` (pour le développement)
 
 Sans cette entrée, les liens d'invitation retombent sur la page d'accueil et le
-collaborateur n'est jamais rattaché à son organisation.
+collaborateur n'est jamais rattaché à son organisation ; un lien de
+réinitialisation retombe de la même façon sur l'accueil, sans que l'utilisateur
+puisse choisir un nouveau mot de passe.
+
+Vérification, sans boîte aux lettres : le script ci-dessous demande un lien à
+l'API d'administration, suit la redirection et dit si l'adresse de retour est
+acceptée par le projet.
+
+```bash
+node scripts/verify-reset-mot-de-passe.mjs [url]     # défaut : http://localhost:3000
+```
 
 ### Confirmation des emails
 
@@ -46,6 +57,11 @@ Authentication → **Sign In / Providers → Email** : selon votre choix,
 « Confirm email » activé ou non. Si vous l'activez, configurez un serveur SMTP
 personnalisé — le service d'email par défaut de Supabase est limité en volume et
 réservé aux essais.
+
+C'est aussi lui qui expédie les liens de réinitialisation : avec le service
+intégré, quelques demandes suffisent à épuiser le quota de l'heure, et l'écran
+affiche alors « Trop de tentatives. Réessayez dans quelques minutes. » — un
+message de limite, non une absence de compte.
 
 ---
 

@@ -153,3 +153,36 @@ export async function signOut() {
   revalidatePath("/", "layout");
   redirect("/connexion");
 }
+
+/**
+ * Demande de réinitialisation de mot de passe.
+ *
+ * La réponse est la même que l'adresse existe ou non : une réponse différenciée
+ * dirait à un inconnu quels comptes existent. Seule une limite de débit est
+ * remontée, car c'est un vrai échec dont l'utilisateur doit être informé.
+ *
+ * Le lien envoyé pointe sur le domaine réellement visité (voir
+ * `origineRequete`) : sans cela il mènerait à l'adresse de développement, une
+ * fois l'application déployée.
+ */
+export async function demanderReinitialisation(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Renseignez votre adresse email." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await origineRequete()}/auth/reinitialiser`,
+  });
+
+  if (error && /rate limit|too many/i.test(error.message)) {
+    return { error: traduire(error.message) };
+  }
+
+  return {
+    success:
+      "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé. Pensez à regarder dans les indésirables.",
+  };
+}
