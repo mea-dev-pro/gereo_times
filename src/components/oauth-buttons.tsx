@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/alert";
 import { nomFournisseur, type Fournisseur } from "@/lib/auth/fournisseurs";
+import { MarqueFournisseur } from "@/components/marques-fournisseurs";
 
 /**
  * Connexion par un fournisseur d'identité tiers.
@@ -71,8 +72,9 @@ export function OAuthButtons({
               type="button"
               onClick={() => continuer(id)}
               disabled={enCours !== null}
-              className="flex h-10 w-full items-center justify-center rounded-control border border-border-strong bg-surface text-sm font-medium text-content transition-colors hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-50"
+              className="flex h-10 w-full items-center justify-center gap-2.5 rounded-control border border-border-strong bg-surface text-sm font-medium text-content transition-colors hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-50"
             >
+              <MarqueFournisseur fournisseur={id} />
               {enCours === id ? `Ouverture…` : `Continuer avec ${nom}`}
             </button>
           );

@@ -93,6 +93,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `AuthShell`, `AuthCard` | `auth-shell` | serveur — habillage des écrans publics : barre du haut, décor de traits (≥ 1024 px), carte centrée |
 | `PasswordInput` | `ui/password-input` | client — champ mot de passe affichable à la demande |
 | `OAuthButtons` | `oauth-buttons` | client — boutons des fournisseurs d'identité réellement activés |
+| `MarqueFournisseur` | `marques-fournisseurs` | serveur — marques officielles des fournisseurs (couleurs de marque, hors thème) |
 | `ToastProvider`, `useToast` | `ui/toast` | client |
 
 `StatusBadge` et `EmptyState` sont ré-exportés depuis `ui/badge` et `ui/alert` :
