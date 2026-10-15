@@ -34,10 +34,16 @@ const ECRANS = [
   ["parametres", "/parametres"],
 ];
 
-/** Écrans publics, sans session. */
+/**
+ * Écrans publics, sans session, avec ce qu'on doit y voir apparaître.
+ * `/auth/reinitialiser` n'a pas de formulaire sans session ouverte : il affiche
+ * un état de traitement, puis un message.
+ */
 const PUBLICS = [
-  ["connexion", "/connexion"],
-  ["inscription", "/inscription"],
+  ["connexion", "/connexion", "form"],
+  ["inscription", "/inscription", "form"],
+  ["mot-de-passe-oublie", "/mot-de-passe-oublie", "form"],
+  ["reinitialiser", "/auth/reinitialiser", "main"],
 ];
 
 const LARGEURS = [
@@ -124,9 +130,9 @@ for (const largeur of LARGEURS) {
     timezoneId: "Indian/Antananarivo",
   });
   const page = await contexte.newPage();
-  for (const [nom, chemin] of PUBLICS) {
+  for (const [nom, chemin, attendu] of PUBLICS) {
     await page.goto(chemin);
-    await page.locator("form").first().waitFor({ state: "visible" });
+    await page.locator(attendu).first().waitFor({ state: "visible" });
     const fichier = join(dossier, `${nom}.jpg`);
     await page.screenshot({ path: fichier, fullPage: true, type: "jpeg", quality: 82 });
     octets += statSync(fichier).size;
