@@ -28,6 +28,11 @@
   --brand-strong: #7c3aed;
   --brand-soft: #ede9fe;
 
+  /* Voile posé sous un panneau coulissant. Une couleur codée en dur ici ne
+     suivrait pas le thème sombre : c'est le seul endroit où le voile est
+     défini. */
+  --scrim: rgb(15 23 42 / 0.4);
+
   --ring: #7c3aed;
 }
 
@@ -44,6 +49,8 @@
   --brand: #a78bfa;
   --brand-strong: #a78bfa;
   --brand-soft: #2a2143;
+
+  --scrim: rgb(0 0 0 / 0.6);
 
   --ring: #a78bfa;
 }
@@ -62,6 +69,7 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-scrim: var(--scrim);
 
   /* Le layout fournit --font-geist-sans ; sans cette ligne, `var(--font-sans)`
      retombait sur la pile système de Tailwind et Geist n'était jamais rendue. */

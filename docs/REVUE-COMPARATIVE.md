@@ -145,7 +145,7 @@ comme valeur appliquée, pas comme valeur mesurée sur la référence.
 
 | # | Écart | Ampleur | Proposition |
 | --- | --- | --- | --- |
-| a | Navigation mobile non compacte — 663 px avant le contenu | élevée | **corrigé le 14/10** : rail permanent au-dessus de 1024 px, barre repliable avec panneau en dessous (voir `DESIGN-SYSTEM.md`, « Rail de navigation et responsive ») |
+| a | Navigation mobile non compacte — 663 px avant le contenu | élevée | **corrigé** : rail permanent au-dessus de 1024 px, tiroir coulissant par-dessus le contenu en dessous (voir `DESIGN-SYSTEM.md`, « Rail de navigation et responsive ») |
 | b | Entrée active violette (bordure + texte) là où la référence reste neutre | faible | À trancher : neutre comme la référence, ou violet comme aujourd'hui (plus lisible pour « où suis-je ») |
 | c | Salutation non horodatée (« Bonjour » seul, sans icône) | faible | **corrigé** : trois moments (matin / après-midi / soir), calculés dans le fuseau de l'organisation, avec l'icône correspondante (`PageHeader icon`) |
 | d | Pas de recherche globale | moyenne | **Tranché en phase 0** : filtrage local uniquement. À ne rouvrir que si une recherche serveur est approuvée |

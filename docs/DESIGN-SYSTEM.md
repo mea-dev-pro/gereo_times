@@ -25,6 +25,7 @@ thème soit instantanée (les utilitaires référencent la variable à l'exécut
 | `--brand` | `#8b5cf6` | `#a78bfa` | identité : pastilles, soulignements |
 | `--brand-strong` | `#7c3aed` | `#a78bfa` | interactif : boutons, liens |
 | `--ring` | `#7c3aed` | `#a78bfa` | anneau de focus |
+| `--scrim` | `rgb(15 23 42 / .4)` | `rgb(0 0 0 / .6)` | voile sous le tiroir de navigation |
 
 Classes correspondantes : `bg-surface`, `text-content`, `text-content-muted`,
 `border-border`, `bg-brand-soft`, `text-brand-strong`…
@@ -88,7 +89,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `SearchInput` | `search-input` | client — filtre par l'URL |
 | `ThemeToggle` | `theme-toggle` | client |
 | `Dialog` | `ui/dialog` | client — `<dialog>` natif |
-| `RailNavigation` | `rail-navigation` | client — rail permanent au-dessus de 1024 px, panneau escamotable en dessous |
+| `AppShell` | `app-shell` | client — barre du haut, rail permanent au-dessus de 1024 px, tiroir coulissant en dessous, contenu inerte tant qu'il est recouvert |
 | `ToastProvider`, `useToast` | `ui/toast` | client |
 
 `StatusBadge` et `EmptyState` sont ré-exportés depuis `ui/badge` et `ui/alert` :
@@ -170,33 +171,59 @@ Masquer une entrée de navigation n'est pas une protection.
 
 ### Rail de navigation et responsive
 
-Le seuil est celui de Tailwind : `lg`, soit 1024 px. Au-dessus, le rail est
-affiché en permanence (256 px, colonne de gauche) et rien ne change. En dessous —
-téléphone et tablette — il est replié derrière un bouton `Menu` de 44 px de haut
-dans une barre collante en haut d'écran, qui porte aussi la marque et le nom de
-l'organisation.
+Le seuil est celui de Tailwind : `lg`, soit 1024 px. Au-dessus, le rail est une
+colonne permanente de 256 px à gauche et rien ne change. En dessous — téléphone
+et tablette — la navigation est un **tiroir** : un panneau fixe de 320 px (jamais
+plus de 85 % de l'écran) qui glisse depuis la gauche **par-dessus** le contenu,
+sous une barre collante de 56 px portant la marque, le nom de l'organisation et
+un bouton `Menu` de 44 px de haut.
 
-Trois décisions à connaître avant de toucher à ce composant :
+Le contenu ne réserve donc plus une seule ligne : replié, l'écran commence
+directement sous la barre. C'est la raison d'être du tiroir — la version
+précédente, dans le flux, consommait 663 px avant le contenu sur un téléphone.
 
-- **Le panneau reste dans le flux**, sous la barre, et n'est pas une fenêtre
-  par-dessus le contenu. Aucun piégeage du focus n'est donc nécessaire, rien
-  n'est masqué derrière une couche, et le reste de la page demeure atteignable au
-  clavier. Une modale pour une navigation coûterait ces garanties-là.
+Quatre décisions à connaître avant de toucher à `AppShell` :
+
+- **Le contenu est inerte tant que le tiroir est ouvert** (`inert` sur `main`).
+  Recouvert par le voile, il ne doit plus prendre le focus : sans cela, la
+  tabulation sortirait du panneau pour aller derrière le voile, où rien n'est
+  visible. C'est le prix d'une couche, et il est payé autrement que par un
+  piégeage du focus écrit à la main.
+- **Le focus entre dans le panneau à l'ouverture** et revient sur le bouton à la
+  fermeture par Échap — le seul chemin de fermeture qui ne soit pas suivi d'une
+  navigation ou d'un clic de souris.
+- **La barre du haut reste au-dessus du tiroir** : le panneau et le voile
+  commencent sous elle, donc le bouton `Fermer` demeure visible et cliquable, et
+  le voile n'occulte jamais la commande qui l'a ouvert.
 - **Le nom accessible du bouton est stable** (`Menu` / `Fermer`, par
   `aria-label`) : le compteur de notifications qu'il porte est décoratif, sinon
   le bouton s'appellerait « Menu 3 non lue(s) » et tout ce qui s'appuie sur son
   nom deviendrait fragile.
-- **La fermeture est événementielle** : le clic dans le panneau et la touche
-  Échap replient, sans effet qui recopierait l'URL dans l'état (règle
-  `react-hooks/set-state-in-effect` du compilateur React — voir la fiche
+
+Deux points d'implémentation :
+
+- **La fermeture est événementielle** : le clic dans le panneau, le clic sur le
+  voile et la touche Échap replient, sans effet qui recopierait l'URL dans l'état
+  (règle `react-hooks/set-state-in-effect` du compilateur React — voir la fiche
   correspondante). Le panneau n'a pas à être refermé au changement de page : il
   l'est déjà au clic sur l'entrée.
+- **Le seuil est lu côté client** (`useSyncExternalStore` sur `matchMedia`), pour
+  que l'inertie du contenu se lève si la fenêtre repasse au-dessus de 1024 px
+  avec le tiroir ouvert. Le serveur et le premier rendu répondent « petit
+  écran », c'est-à-dire l'état replié que décrit le HTML statique.
+
+Le voile utilise le jeton `--scrim` : une couleur codée en dur ne suivrait pas le
+thème sombre.
 
 Vérification : `tests/e2e/responsive.spec.ts`, joué par trois projets Playwright
 — `telephone` (390 px), `tablette` (834 px), `bureau` (1440 px). Chaque test
 lit la largeur réelle pour décider de ce qui est attendu, de sorte qu'il affirme
 quelque chose aux trois largeurs plutôt que de s'ignorer là où il ne s'applique
-pas. `tests/e2e/mobile.spec.ts` couvre la cible tactile et les deux fermetures.
+pas. Il vérifie notamment que le contenu ne bouge pas d'un pixel à l'ouverture :
+c'est la preuve que la navigation ne réserve plus d'espace.
+`tests/e2e/mobile.spec.ts` couvre la cible tactile, la fermeture par le voile,
+les deux autres fermetures, et le fait que le focus n'entre jamais dans le
+contenu recouvert.
 
 ---
 

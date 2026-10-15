@@ -7,9 +7,9 @@ import { expect, test } from "@playwright/test";
  * cette façon chaque test affirme quelque chose à chaque largeur, au lieu de
  * s'ignorer silencieusement là où il ne s'applique pas.
  *
- * Le seuil est celui de Tailwind : `lg` = 1024 px. En dessous, le rail est
- * replié derrière le bouton « Menu » ; au-dessus, il est affiché en permanence
- * et le bouton n'existe pas.
+ * Le seuil est celui de Tailwind : `lg` = 1024 px. En dessous, la navigation
+ * est un tiroir derrière le bouton « Menu » ; au-dessus, le rail est affiché en
+ * permanence et le bouton n'existe pas.
  */
 
 const SEUIL = 1024;
@@ -95,11 +95,41 @@ test.describe("Responsive — rail de navigation", () => {
       // Rail permanent : largeur fixe, il ne bouge pas d'un écran à l'autre.
       expect(boite!.width).toBe(256);
     } else {
-      // Panneau : toute la largeur sur téléphone, 320 px à partir de la
-      // tablette (seuil `sm` de Tailwind), sans jamais dépasser l'écran.
-      const attendu = largeur(page) >= 640 ? 320 : largeur(page);
-      expect(boite!.width).toBeLessThanOrEqual(Math.min(attendu, largeur(page)) + 1);
+      // Tiroir : 320 px, sans jamais dépasser 85 % de l'écran — le voile reste
+      // visible à droite, ce qui montre qu'on peut fermer en cliquant à côté.
+      const attendu = Math.min(320, largeur(page) * 0.85);
+      expect(boite!.width).toBeLessThanOrEqual(attendu + 1);
       expect(boite!.width).toBeGreaterThan(attendu - 2);
+    }
+  });
+
+  test("le tiroir recouvre le contenu au lieu de le décaler", async ({ page }) => {
+    await page.goto("/");
+    const grand = largeur(page) >= SEUIL;
+    const rail = page.locator("#rail-navigation");
+    const contenu = page.locator("main");
+
+    const avant = await contenu.boundingBox();
+    expect(avant).not.toBeNull();
+
+    if (!grand) await page.getByRole("button", { name: "Menu" }).click();
+    await expect(rail).toBeVisible();
+
+    // Le contenu n'a pas bougé d'un pixel : la navigation est une couche
+    // par-dessus, elle ne réserve plus de largeur ni de hauteur.
+    const apres = await contenu.boundingBox();
+    expect(apres).not.toBeNull();
+    expect(
+      Math.abs(apres!.x - avant!.x),
+      "la position du contenu ne change pas à l'ouverture"
+    ).toBeLessThanOrEqual(1);
+    expect(Math.abs(apres!.width - avant!.width)).toBeLessThanOrEqual(1);
+
+    if (!grand) {
+      // Et le tiroir chevauche bien ce contenu.
+      const boite = await rail.boundingBox();
+      expect(boite!.x + boite!.width).toBeGreaterThan(apres!.x);
+      expect(boite!.x).toBeLessThanOrEqual(1);
     }
   });
 

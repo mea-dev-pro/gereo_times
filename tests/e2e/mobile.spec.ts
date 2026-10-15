@@ -74,6 +74,63 @@ test.describe("Mobile — débordement horizontal (écrans publics)", () => {
   }
 });
 
+test.describe("Mobile — tiroir de navigation", () => {
+  test("un clic à côté du tiroir le referme", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Menu" }).click();
+
+    const rail = page.locator("#rail-navigation");
+    await expect(rail).toBeVisible();
+
+    // Geste réel : on tape à droite du tiroir (320 px de large sur 390 px
+    // d'écran), là où se trouve le voile. Le clic est fait sur le voile
+    // lui-même pour vérifier qu'il est bien au-dessus du contenu.
+    const boite = await rail.boundingBox();
+    expect(boite).not.toBeNull();
+    const x = Math.round(boite!.x + boite!.width + 30);
+    expect(x, "il reste de la place à droite du tiroir").toBeLessThan(390);
+    await page.mouse.click(x, 300);
+
+    await expect(rail).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Menu" })
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("le contenu ne prend pas le focus tant que le tiroir est ouvert", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const contenu = page.locator("main");
+
+    // Fermé : le contenu est atteignable, c'est l'état normal.
+    expect(await contenu.evaluate((el: HTMLElement) => el.inert)).toBe(false);
+
+    await page.getByRole("button", { name: "Menu" }).click();
+
+    // Ouvert : le voile recouvre le contenu, il ne doit plus être focalisable.
+    expect(await contenu.evaluate((el: HTMLElement) => el.inert)).toBe(true);
+
+    // Le focus entre dans le tiroir à l'ouverture, puis la tabulation ne
+    // descend jamais dans le contenu recouvert.
+    for (let i = 0; i < 14; i++) {
+      await page.keyboard.press("Tab");
+      const dansLeContenu = await page.evaluate(() =>
+        Boolean(document.activeElement?.closest("main"))
+      );
+      expect(dansLeContenu, `le focus entre dans le contenu au ${i + 1}e Tab`).toBe(
+        false
+      );
+    }
+
+    // Échap referme et rend la main au bouton, pas au document.
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#rail-navigation")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Menu" })).toBeFocused();
+    expect(await contenu.evaluate((el: HTMLElement) => el.inert)).toBe(false);
+  });
+});
+
 test.describe("Mobile — accès aux actions", () => {
   test("l'action de pointage est visible sans défilement latéral", async ({
     page,

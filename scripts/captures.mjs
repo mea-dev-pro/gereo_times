@@ -83,8 +83,8 @@ for (const largeur of LARGEURS) {
     console.log(`  ${largeur.nom.padStart(4)}  ${nom}`);
   }
 
-  // Sous 1024 px le rail est replié : sa version ouverte est un état à part
-  // entière, invisible autrement dans la revue visuelle.
+  // Sous 1024 px la navigation est repliée : sa version ouverte est un état à
+  // part entière, invisible autrement dans la revue visuelle.
   if (largeur.menu) {
     await page.goto("/");
     await page.locator("main").first().waitFor({ state: "visible" });
@@ -95,7 +95,17 @@ for (const largeur of LARGEURS) {
     });
     await page.waitForTimeout(400);
     const fichier = join(dossier, "menu-ouvert.jpg");
-    await page.screenshot({ path: fichier, fullPage: true, type: "jpeg", quality: 82 });
+    // Capture à la fenêtre, et non de la page entière : le tiroir est une
+    // couche fixe, de la hauteur de l'écran. Sur une page entière il
+    // apparaîtrait détaché, posé en haut d'une longue bande, et le voile ne
+    // couvrirait que sa hauteur — une image qui ne montrerait pas ce que
+    // l'utilisateur voit.
+    await page.screenshot({
+      path: fichier,
+      fullPage: false,
+      type: "jpeg",
+      quality: 82,
+    });
     octets += statSync(fichier).size;
     total++;
     console.log(`  ${largeur.nom.padStart(4)}  menu-ouvert`);
