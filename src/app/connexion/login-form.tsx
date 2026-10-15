@@ -8,7 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form";
 import { PasswordInput } from "@/components/ui/password-input";
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({
+  next,
+  erreurInitiale,
+}: {
+  next: string;
+  /** Motif d'échec renvoyé par un fournisseur d'identité, s'il y en a un. */
+  erreurInitiale?: string;
+}) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     signIn,
     null
@@ -18,7 +25,11 @@ export function LoginForm({ next }: { next: string }) {
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="next" value={next} />
 
-      {state?.error && <Alert variant="danger">{state.error}</Alert>}
+      {state?.error ? (
+        <Alert variant="danger">{state.error}</Alert>
+      ) : erreurInitiale ? (
+        <Alert variant="danger">{erreurInitiale}</Alert>
+      ) : null}
       {state?.success && <Alert variant="success">{state.success}</Alert>}
 
       <div>

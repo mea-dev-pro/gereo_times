@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard, AuthShell } from "@/components/auth-shell";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import { buttonVariants } from "@/components/ui/button";
+import { fournisseursActifs } from "@/lib/data/fournisseurs";
 import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = { title: "Inscription" };
 
-export default function InscriptionPage() {
+export default async function InscriptionPage() {
+  const fournisseurs = await fournisseursActifs();
+
   return (
     <AuthShell
       action={
@@ -23,6 +27,7 @@ export default function InscriptionPage() {
         description="Votre espace est isolé : aucune donnée n'est partagée avec d'autres organisations."
       >
         <SignupForm />
+        <OAuthButtons fournisseurs={fournisseurs} />
       </AuthCard>
     </AuthShell>
   );

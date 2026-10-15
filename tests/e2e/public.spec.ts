@@ -130,6 +130,110 @@ test.describe("Activation — liens invalides", () => {
 });
 
 /**
+ * Fournisseurs d'identité tiers.
+ *
+ * L'écran ne doit proposer que les fournisseurs que Supabase déclare actifs :
+ * un bouton qui mène à « provider is not enabled » est pire qu'une absence de
+ * bouton. Le test interroge donc l'état réel, puis vérifie la conséquence dans
+ * l'interface — il devient exigeant tout seul le jour où un fournisseur est
+ * activé dans Supabase, sans qu'une ligne soit à changer ici.
+ */
+const FOURNISSEURS = ["google", "apple", "facebook"] as const;
+
+async function fournisseursActifs(
+  requete: import("@playwright/test").APIRequestContext
+): Promise<string[] | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !cle) return null;
+
+  const reponse = await requete.get(`${url}/auth/v1/settings`, {
+    headers: { apikey: cle },
+  });
+  const { external } = (await reponse.json()) as {
+    external?: Record<string, boolean>;
+  };
+  return FOURNISSEURS.filter((f) => external?.[f]);
+}
+
+test.describe("Connexion par un fournisseur tiers", () => {
+  test("seuls les fournisseurs configurés sont proposés", async ({
+    page,
+    request,
+  }) => {
+    const actifs = await fournisseursActifs(request);
+    // Sans ces deux valeurs, l'état des fournisseurs est inconnaissable : mieux
+    // vaut le dire que de laisser croire que le contrôle est passé.
+    expect(
+      actifs,
+      "NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont attendus dans .env.local"
+    ).not.toBeNull();
+
+    await page.goto("/connexion");
+
+    for (const fournisseur of FOURNISSEURS) {
+      const nom = fournisseur[0].toUpperCase() + fournisseur.slice(1);
+      const bouton = page.getByRole("button", {
+        name: `Continuer avec ${nom}`,
+      });
+
+      if (!actifs!.includes(fournisseur)) {
+        await expect(
+          bouton,
+          `${nom} est inactif côté Supabase : aucun bouton ne doit apparaître`
+        ).toHaveCount(0);
+        continue;
+      }
+
+      await expect(bouton).toBeVisible();
+
+      // Activé : le bouton doit engager le parcours chez le fournisseur, et le
+      // retour doit viser /auth/callback — c'est cette adresse qui doit figurer
+      // dans la liste blanche du projet.
+      let destination = "";
+      await page.route("**/*", async (route) => {
+        const cible = route.request().url();
+        if (cible.startsWith("http://localhost:3000")) return route.continue();
+        destination = cible;
+        await route.abort();
+      });
+
+      await bouton.click();
+      await expect
+        .poll(() => destination, { timeout: 15_000 })
+        .toContain(`provider=${fournisseur}`);
+      expect(destination).toContain("supabase.co/auth/v1/authorize");
+      expect(decodeURIComponent(destination)).toContain("/auth/callback");
+    }
+  });
+
+  test("un retour en échec ramène à la connexion avec un motif lisible", async ({
+    page,
+  }) => {
+    // Sans code : le fournisseur a refusé, ou l'utilisateur est revenu en arrière.
+    await page.goto("/auth/callback");
+    await expect(page).toHaveURL(/\/connexion\?erreur=fournisseur/);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "refusé la connexion" })
+    ).toBeVisible();
+
+    // Annulation explicite.
+    await page.goto("/auth/callback?error=access_denied&error_code=access_denied");
+    await expect(page).toHaveURL(/\/connexion\?erreur=annule/);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "a été annulée" })
+    ).toBeVisible();
+
+    // Code présent mais échange impossible : le motif doit rester distinct.
+    await page.goto("/auth/callback?code=code-invalide");
+    await expect(page).toHaveURL(/\/connexion\?erreur=echange/);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "n'a pas pu être finalisée" })
+    ).toBeVisible();
+  });
+});
+
+/**
  * Demande de réinitialisation. Aucun courriel n'est envoyé pour une adresse
  * inconnue — l'API répond 200 sans rien expédier —, ce qui rend ce contrôle
  * reproductible sans consommer le quota d'envoi du projet.

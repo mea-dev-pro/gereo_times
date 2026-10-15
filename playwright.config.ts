@@ -1,4 +1,26 @@
 import { defineConfig, devices } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Les tests interrogent les mêmes API publiques que l'application — l'état des
+ * fournisseurs d'identité, par exemple — pour vérifier que l'interface suit.
+ * Ils ont donc besoin de l'URL et de la clé publiques de Supabase, qui ne sont
+ * pas des secrets : elles partent dans le navigateur. La clé de service, elle,
+ * n'est jamais exposée ici.
+ *
+ * `__dirname` et non `import.meta` : Playwright charge ce fichier en CommonJS.
+ */
+try {
+  const fichier = readFileSync(join(__dirname, ".env.local"), "utf8");
+  for (const ligne of fichier.split(/\r?\n/)) {
+    const m = ligne.match(/^(NEXT_PUBLIC_[A-Z0-9_]+)=(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+  }
+} catch {
+  // Pas de .env.local : les tests qui en dépendent le disent eux-mêmes.
+}
+
 
 /**
  * Tests de bout en bout GereoTimes.

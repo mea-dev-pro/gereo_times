@@ -87,6 +87,51 @@ acceptée par le projet.
 node scripts/verify-reset-mot-de-passe.mjs [url]     # défaut : http://localhost:3000
 ```
 
+### Connexion par un fournisseur tiers (Google, Apple, Facebook)
+
+Le bouton n'apparaît que si le fournisseur est **activé dans Supabase** :
+l'écran interroge `/auth/v1/settings` (mis en cache une minute) et n'affiche que
+les fournisseurs qui répondent présent. Il n'y a donc rien à déployer pour en
+ajouter ou en retirer un — et aucun bouton sans effet n'est jamais montré.
+
+Pour chaque fournisseur, l'ordre est toujours le même :
+
+1. **créer une application chez le fournisseur**, en y déclarant comme URI de
+   redirection l'adresse de rappel de Supabase :
+   `https://<référence>.supabase.co/auth/v1/callback` ;
+2. **reporter l'identifiant et le secret** dans Supabase → Authentication →
+   Providers → (fournisseur) ;
+3. **ajouter l'adresse de retour de l'application** dans Authentication → URL
+   Configuration : `https://votre-domaine.mg/auth/callback` (implicite si c'est
+   l'origine de la Site URL) **et** `http://localhost:3000/auth/callback`.
+
+*Google* — console.cloud.google.com → APIs & Services → Credentials → Create
+credentials → OAuth client ID → Web application. Aucun examen préalable, aucun
+frais : c'est le fournisseur à activer en premier.
+
+*Facebook* — developers.facebook.com → Create app → produit « Facebook Login ».
+Exige une URL de politique de confidentialité et, pour un usage hors comptes de
+test, une revue d'application.
+
+*Apple* — nécessite le programme développeur Apple (99 $ par an) : un Services
+ID, une clé `.p8`, l'identifiant d'équipe et l'identifiant de clé, plus la
+capacité « Sign in with Apple » rattachée à l'application.
+
+Vérification : `tests/e2e/public.spec.ts` (« Connexion par un fournisseur
+tiers ») interroge l'état réel et exige que l'interface suive — un bouton pour
+chaque fournisseur actif, aucun pour les autres. Quand un fournisseur est actif,
+le test vérifie en plus que le clic engage bien le parcours chez Supabase avec
+`redirect_to=…/auth/callback`. Il devient donc plus exigeant tout seul, sans
+qu'une ligne soit à modifier.
+
+Pour éprouver la branche « fournisseur actif » avant d'avoir les identifiants,
+on peut forcer la liste le temps d'un essai (rebuild nécessaire, le résultat est
+mis en cache au moment de la construction) : remplacer temporairement le retour
+de `fournisseursActifs()` par `["google"]`, puis vérifier au navigateur que le
+bouton apparaît et que le clic mène à
+`https://<référence>.supabase.co/auth/v1/authorize?provider=google`. Retirer le
+forçage ensuite.
+
 ### Confirmation des emails
 
 Authentication → **Sign In / Providers → Email** : selon votre choix,

@@ -237,6 +237,10 @@ lien quand la liste blanche du projet n'a pas été mise à jour.
   unique envoyé par Supabase Auth, choix d'un nouveau mot de passe sur
   `/auth/reinitialiser` — la réponse ne dit jamais si l'adresse correspond à un
   compte
+- **connexion par un fournisseur tiers** : Google, Apple ou Facebook, chacun
+  affiché seulement s'il est activé côté Supabase ; retour traité par
+  `/auth/callback` (échange PKCE côté serveur, la session est posée avant le
+  premier rendu)
 - **acquisition planifiée** : tâche quotidienne Vercel (`/api/cron/quotidien`)
   qui crédite le mois écoulé pour chaque organisation dans son fuseau horaire,
   puis dépile les notifications en attente — idempotente, donc un jour manqué
