@@ -157,7 +157,7 @@ async function fournisseursActifs(
 }
 
 test.describe("Connexion par un fournisseur tiers", () => {
-  test("seuls les fournisseurs configurés sont proposés", async ({
+  test("seuls les fournisseurs configurés sont cliquables", async ({
     page,
     request,
   }) => {
@@ -171,25 +171,36 @@ test.describe("Connexion par un fournisseur tiers", () => {
 
     await page.goto("/connexion");
 
+    // 1. État de chaque bouton. Les trois sont affichés — c'est la composition
+    // de la maquette — mais seuls les fournisseurs actifs sont cliquables.
+    // Cette passe doit précéder les clics : un clic intercepté puis interrompu
+    // détruit le document, et tout contrôle d'interface mené après lui serait
+    // vrai à vide (c'est précisément ce que faisait la version précédente).
     for (const fournisseur of FOURNISSEURS) {
       const nom = fournisseur[0].toUpperCase() + fournisseur.slice(1);
+      const actif = actifs!.includes(fournisseur);
+
       const bouton = page.getByRole("button", {
-        name: `Continuer avec ${nom}`,
+        name: actif ? `Continuer avec ${nom}` : `Continuer avec ${nom} (bientôt disponible)`,
+        exact: actif,
       });
+      await expect(bouton, `${nom} : bouton attendu`).toBeVisible();
+      await expect(bouton, `${nom} : état du bouton`).toBeEnabled({ enabled: actif });
 
-      if (!actifs!.includes(fournisseur)) {
+      if (!actif) {
         await expect(
-          bouton,
-          `${nom} est inactif côté Supabase : aucun bouton ne doit apparaître`
+          page.getByRole("button", { name: `Continuer avec ${nom}`, exact: true }),
+          `${nom} est inactif : aucun bouton cliquable ne doit exister`
         ).toHaveCount(0);
-        continue;
       }
+    }
 
-      await expect(bouton).toBeVisible();
-
-      // Activé : le bouton doit engager le parcours chez le fournisseur, et le
-      // retour doit viser /auth/callback — c'est cette adresse qui doit figurer
-      // dans la liste blanche du projet.
+    // 2. Un fournisseur actif doit engager le parcours chez lui, et le retour
+    // doit viser /auth/callback — c'est cette adresse qui doit figurer dans la
+    // liste blanche du projet.
+    for (const fournisseur of actifs!) {
+      // Page neuve à chaque tour : le clic quitte le document.
+      await page.goto("/connexion");
       let destination = "";
       await page.route("**/*", async (route) => {
         const cible = route.request().url();
@@ -198,12 +209,18 @@ test.describe("Connexion par un fournisseur tiers", () => {
         await route.abort();
       });
 
-      await bouton.click();
+      await page
+        .getByRole("button", {
+          name: `Continuer avec ${fournisseur[0].toUpperCase()}${fournisseur.slice(1)}`,
+          exact: true,
+        })
+        .click();
       await expect
         .poll(() => destination, { timeout: 15_000 })
         .toContain(`provider=${fournisseur}`);
       expect(destination).toContain("supabase.co/auth/v1/authorize");
       expect(decodeURIComponent(destination)).toContain("/auth/callback");
+      await page.unroute("**/*");
     }
   });
 

@@ -90,9 +90,12 @@ node scripts/verify-reset-mot-de-passe.mjs [url]     # défaut : http://localhos
 ### Connexion par un fournisseur tiers (Google, Apple, Facebook)
 
 Le bouton n'apparaît que si le fournisseur est **activé dans Supabase** :
-l'écran interroge `/auth/v1/settings` (mis en cache une minute) et n'affiche que
-les fournisseurs qui répondent présent. Il n'y a donc rien à déployer pour en
-ajouter ou en retirer un — et aucun bouton sans effet n'est jamais montré.
+l'écran interroge `/auth/v1/settings` (mis en cache une minute) et compare.
+Les trois fournisseurs sont affichés — c'est la composition de la maquette,
+voir `docs/ECRAN-CONNEXION-REFERENCE.md` — mais seuls les fournisseurs actifs
+sont cliquables ; les autres sont désactivés et portent la mention « bientôt »
+(« bientôt disponible » pour les lecteurs d'écran). Activer un fournisseur dans
+Supabase suffit donc à rendre son bouton actif, sans rien redéployer.
 
 Pour chaque fournisseur, l'ordre est toujours le même :
 

@@ -3,14 +3,22 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/alert";
-import { nomFournisseur, type Fournisseur } from "@/lib/auth/fournisseurs";
+import {
+  FOURNISSEURS,
+  nomFournisseur,
+  type Fournisseur,
+} from "@/lib/auth/fournisseurs";
 import { MarqueFournisseur } from "@/components/marques-fournisseurs";
 
 /**
  * Connexion par un fournisseur d'identité tiers.
  *
- * Les fournisseurs listés sont ceux que Supabase déclare actifs (voir
- * `lib/auth/fournisseurs`) : aucun bouton sans effet n'est affiché.
+ * Les trois fournisseurs sont toujours affichés — c'est la composition de la
+ * maquette — mais seuls ceux que Supabase déclare actifs sont cliquables (voir
+ * `lib/data/fournisseurs`). Les autres sont **désactivés**, avec la mention
+ * « bientôt » : un bouton qui ne fait rien est un défaut, un bouton grisé qui
+ * dit pourquoi est une information. Activer un fournisseur dans Supabase suffit
+ * à rendre le sien actif, sans toucher à ce fichier.
  *
  * L'adresse de retour est construite sur l'origine réellement visitée — c'est
  * le même principe que les liens reçus par courriel, et la raison pour laquelle
@@ -25,8 +33,6 @@ export function OAuthButtons({
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState<Fournisseur | null>(null);
-
-  if (fournisseurs.length === 0) return null;
 
   async function continuer(fournisseur: Fournisseur) {
     setErreur(null);
@@ -64,18 +70,31 @@ export function OAuthButtons({
       {erreur && <Alert variant="danger">{erreur}</Alert>}
 
       <div className="space-y-2">
-        {fournisseurs.map((id) => {
+        {FOURNISSEURS.map(({ id }) => {
           const nom = nomFournisseur(id);
+          const actif = fournisseurs.includes(id);
+          const libelle = enCours === id ? "Ouverture…" : `Continuer avec ${nom}`;
+
           return (
             <button
               key={id}
               type="button"
               onClick={() => continuer(id)}
-              disabled={enCours !== null}
+              disabled={!actif || enCours !== null}
+              // Le nom accessible porte la raison : sans cela, un lecteur
+              // d'écran annonce un bouton désactivé sans dire pourquoi.
+              aria-label={actif ? libelle : `${libelle} (bientôt disponible)`}
               className="flex h-10 w-full items-center justify-center gap-2.5 rounded-control border border-border-strong bg-surface text-sm font-medium text-content transition-colors hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-50"
             >
               <MarqueFournisseur fournisseur={id} />
-              {enCours === id ? `Ouverture…` : `Continuer avec ${nom}`}
+              <span className={actif ? undefined : "text-content-muted"}>
+                {libelle}
+              </span>
+              {!actif ? (
+                <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-content-subtle">
+                  bientôt
+                </span>
+              ) : null}
             </button>
           );
         })}
