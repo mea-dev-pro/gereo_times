@@ -157,7 +157,7 @@ Et une tentative de connexion avec un compte inexistant renvoie
 « Email ou mot de passe incorrect. » — la réponse de Supabase Auth, donc les
 clés de production sont acceptées et la base est joignable depuis Vercel.
 
-Deux points restent à faire, hors CLI :
+Trois points restent à faire, hors CLI :
 
 1. **Auto-déploiement.** `vercel git connect` répond `You need admin or write
    access to the repository "gereo_times" to link it. (400)` : l'application
@@ -165,7 +165,20 @@ Deux points restent à faire, hors CLI :
    `mea-dev-pro/gereo_times` (Settings → GitHub Apps → Vercel → Repository
    access), puis relancer `vercel git connect`. En attendant, publier se fait
    par `vercel deploy --prod`.
-2. **Clé Resend.** `RESEND_API_KEY` et `EMAIL_FROM` : sans elles la file
+2. **Adresse de retour de la réinitialisation.** Mesuré le 15/10 :
+   `https://gereotimes.vercel.app/auth/reinitialiser` n'est pas dans les
+   **Redirect URLs** du projet, alors que `/auth/confirmer` y est. Supabase
+   renvoie donc vers sa **Site URL** — restée `http://localhost:3000` — sans
+   jeton : le lien reçu par courriel ne mène nulle part d'utile. À faire dans
+   Supabase → Authentication → URL Configuration : ajouter
+   `https://gereotimes.vercel.app/auth/reinitialiser`, puis passer la Site URL
+   au domaine de production. Vérification :
+
+```bash
+node scripts/verify-reset-mot-de-passe.mjs https://gereotimes.vercel.app
+#   la ligne « l'adresse de retour … est autorisée » doit passer au vert
+```
+3. **Clé Resend.** `RESEND_API_KEY` et `EMAIL_FROM` : sans elles la file
    d'envoi reste pleine. Les créer sur resend.com, puis les poser sur Vercel
    (`vercel env add` en collant la valeur sur l'entrée standard — jamais dans
    `argv`). Une fois posées, la vérification se fait avec le serveur local
