@@ -117,6 +117,21 @@ test, une revue d'application.
 ID, une clé `.p8`, l'identifiant d'équipe et l'identifiant de clé, plus la
 capacité « Sign in with Apple » rattachée à l'application.
 
+**État relevé le 15/10.** Google est activé et vérifié sur les deux origines :
+le bouton apparaît dans la minute sur `localhost:3000` comme sur
+`gereotimes.vercel.app`, et le clic mène à la page de connexion Google avec
+`client_id` renseigné, `redirect_uri = https://qvopcsqabvqnjcfpxlut.supabase.co/auth/v1/callback`,
+`scope = email profile` et un `state` — donc Supabase accepte à la fois le
+fournisseur, le client et l'adresse de retour de l'application. Aucun
+redéploiement n'a été nécessaire : seul l'état du fournisseur a changé.
+
+Apple et Facebook restent inactifs : leurs boutons n'apparaissent pas.
+
+Si la première connexion réelle échoue après le choix du compte, regarder en
+premier la permission `openid` dans Google Auth Platform → Data Access : la
+requête émise par Supabase demande `email profile`, et c'est le point que la
+documentation signale comme nécessaire côté écran de consentement.
+
 Vérification : `tests/e2e/public.spec.ts` (« Connexion par un fournisseur
 tiers ») interroge l'état réel et exige que l'interface suive — un bouton pour
 chaque fournisseur actif, aucun pour les autres. Quand un fournisseur est actif,
