@@ -23,6 +23,24 @@ test.describe("Accès public", () => {
     ).toBeVisible();
   });
 
+  test("le mot de passe s'affiche et se masque à la demande", async ({ page }) => {
+    await page.goto("/connexion");
+
+    const champ = page.locator("#password");
+    await expect(champ).toHaveAttribute("type", "password");
+
+    // Le bouton annonce l'action disponible, pas l'état : c'est ce nom qui
+    // guide un utilisateur au lecteur d'écran.
+    await page.getByRole("button", { name: "Afficher le mot de passe" }).click();
+    await expect(champ).toHaveAttribute("type", "text");
+    await expect(
+      page.getByRole("button", { name: "Masquer le mot de passe" })
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Masquer le mot de passe" }).click();
+    await expect(champ).toHaveAttribute("type", "password");
+  });
+
   test("la connexion mène à la demande de réinitialisation", async ({ page }) => {
     await page.goto("/connexion");
 

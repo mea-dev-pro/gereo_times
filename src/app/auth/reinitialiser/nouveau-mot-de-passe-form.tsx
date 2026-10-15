@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/form";
+import { Label } from "@/components/ui/form";
+import { PasswordInput } from "@/components/ui/password-input";
 
 /** Longueur minimale : même seuil que l'inscription et l'API d'authentification. */
 const MINIMUM = 6;
@@ -96,10 +97,9 @@ export function NouveauMotDePasseForm() {
 
       <div>
         <Label htmlFor="password">Nouveau mot de passe</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           minLength={MINIMUM}
           autoComplete="new-password"
@@ -108,10 +108,9 @@ export function NouveauMotDePasseForm() {
 
       <div>
         <Label htmlFor="confirmation">Confirmation</Label>
-        <Input
+        <PasswordInput
           id="confirmation"
           name="confirmation"
-          type="password"
           required
           minLength={MINIMUM}
           autoComplete="new-password"

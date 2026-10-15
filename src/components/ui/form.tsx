@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const base =
-  "flex w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-content shadow-sm placeholder:text-content-subtle focus-visible:border-blue-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-content-muted";
+  "flex w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-content shadow-sm placeholder:text-content-subtle focus-visible:border-brand-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-content-muted";
 
 export function Input({
   className,

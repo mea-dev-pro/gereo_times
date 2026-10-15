@@ -10,6 +10,7 @@ import {
   useErreurFragment,
 } from "@/lib/auth/lien-session";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import { AuthCard, AuthShell } from "@/components/auth-shell";
 import { NouveauMotDePasseForm } from "./nouveau-mot-de-passe-form";
 
@@ -56,12 +57,12 @@ export default function ReinitialiserPage() {
 
   return (
     <AuthShell
-      footer={
+      action={
         <Link
           href="/connexion"
-          className="font-medium text-brand-strong hover:underline"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          Retour à la connexion
+          Se connecter
         </Link>
       }
     >

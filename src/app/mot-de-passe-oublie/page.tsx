@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard, AuthShell } from "@/components/auth-shell";
+import { buttonVariants } from "@/components/ui/button";
 import { DemandeForm } from "./demande-form";
 
 export const metadata: Metadata = { title: "Mot de passe oublié" };
@@ -8,16 +9,13 @@ export const metadata: Metadata = { title: "Mot de passe oublié" };
 export default function MotDePasseOubliePage() {
   return (
     <AuthShell
-      footer={
-        <>
-          Vous vous en souvenez ?{" "}
-          <Link
-            href="/connexion"
-            className="font-medium text-brand-strong hover:underline"
-          >
-            Se connecter
-          </Link>
-        </>
+      action={
+        <Link
+          href="/connexion"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Se connecter
+        </Link>
       }
     >
       <AuthCard

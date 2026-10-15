@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard, AuthShell } from "@/components/auth-shell";
+import { buttonVariants } from "@/components/ui/button";
 import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = { title: "Inscription" };
@@ -8,16 +9,13 @@ export const metadata: Metadata = { title: "Inscription" };
 export default function InscriptionPage() {
   return (
     <AuthShell
-      footer={
-        <>
-          Vous avez déjà un compte ?{" "}
-          <Link
-            href="/connexion"
-            className="font-medium text-brand-strong hover:underline"
-          >
-            Se connecter
-          </Link>
-        </>
+      action={
+        <Link
+          href="/connexion"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Se connecter
+        </Link>
       }
     >
       <AuthCard

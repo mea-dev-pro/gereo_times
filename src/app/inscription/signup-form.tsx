@@ -5,6 +5,7 @@ import { signUp, type ActionState } from "@/lib/auth/actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function SignupForm() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -56,10 +57,9 @@ export function SignupForm() {
 
       <div>
         <Label htmlFor="password">Mot de passe</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           minLength={6}
           autoComplete="new-password"

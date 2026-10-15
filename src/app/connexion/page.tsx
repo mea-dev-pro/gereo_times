@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard, AuthShell } from "@/components/auth-shell";
+import { buttonVariants } from "@/components/ui/button";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
@@ -17,19 +18,19 @@ export default async function ConnexionPage({
 
   return (
     <AuthShell
-      footer={
-        <>
-          Pas encore de compte ?{" "}
-          <Link
-            href="/inscription"
-            className="font-medium text-brand-strong hover:underline"
-          >
-            Créer une organisation
-          </Link>
-        </>
+      action={
+        <Link
+          href="/inscription"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Créer une organisation
+        </Link>
       }
     >
-      <AuthCard title="Connexion">
+      <AuthCard
+        title="Connexion"
+        description="Accédez au suivi du temps et des congés de votre organisation."
+      >
         <LoginForm next={next} />
       </AuthCard>
     </AuthShell>

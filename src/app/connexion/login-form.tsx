@@ -6,6 +6,7 @@ import { signIn, type ActionState } from "@/lib/auth/actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginForm({ next }: { next: string }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -34,16 +35,17 @@ export function LoginForm({ next }: { next: string }) {
 
       <div>
         <Label htmlFor="password">Mot de passe</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           autoComplete="current-password"
         />
       </div>
 
-      <p className="text-right">
+      {/* Placé avant le bouton, comme « Having trouble in sign in? » de la
+          maquette de référence. */}
+      <p>
         <Link
           href="/mot-de-passe-oublie"
           className="text-xs font-medium text-brand-strong hover:underline"

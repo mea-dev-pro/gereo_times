@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -10,6 +11,8 @@ import {
   useErreurFragment,
 } from "@/lib/auth/lien-session";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
+import { AuthCard, AuthShell } from "@/components/auth-shell";
 
 /**
  * Point d'arrivée des liens d'activation (invitation) et de connexion.
@@ -71,33 +74,41 @@ export default function ConfirmerPage() {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm text-center">
-        <span className="text-2xl font-semibold tracking-tight text-content">
-          Gereo<span className="text-brand-strong">Times</span>
-        </span>
-
-        <div className="mt-6">
-          {error ? (
-            <Alert variant="danger" title="Activation impossible">
-              {error}
-            </Alert>
-          ) : (
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-              <p className="text-sm text-content-muted">
-                Activation de votre accès en cours…
-              </p>
-              <div
-                className="mx-auto mt-4 h-1.5 w-32 overflow-hidden rounded-full bg-surface-muted"
-                role="status"
-                aria-label="Traitement en cours"
-              >
-                <div className="h-full w-1/2 animate-pulse rounded-full bg-brand-strong" />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </main>
+    <AuthShell
+      action={
+        <Link
+          href="/connexion"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Se connecter
+        </Link>
+      }
+    >
+      {error ? (
+        <AuthCard title="Activation">
+          <Alert variant="danger" title="Activation impossible">
+            {error}
+          </Alert>
+          <p className="mt-4 text-center text-sm text-content-muted">
+            <Link
+              href="/connexion"
+              className="font-medium text-brand-strong hover:underline"
+            >
+              Retour à la connexion
+            </Link>
+          </p>
+        </AuthCard>
+      ) : (
+        <AuthCard title="Activation" description="Validation de votre accès en cours…">
+          <div
+            className="mx-auto h-1.5 w-32 overflow-hidden rounded-full bg-surface-muted"
+            role="status"
+            aria-label="Traitement en cours"
+          >
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-brand-strong" />
+          </div>
+        </AuthCard>
+      )}
+    </AuthShell>
   );
 }
