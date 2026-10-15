@@ -26,7 +26,9 @@ const session = etatArg ?? join(process.cwd(), "tests", ".auth", "admin.json");
 // Deux fois les mêmes écrans : la seconde visite de /conges et de /calendrier
 // doit montrer le gain du cache navigateur.
 const PARCOURS = [
-  { href: "/", titre: "Bonjour" },
+  // Idem perf-navigation : la salutation dépend de l'heure, le repère de la
+  // semaine non.
+  { href: "/", titre: "semaine du" },
   { href: "/conges", titre: "Mes congés" },
   { href: "/calendrier", titre: "Calendrier d'équipe" },
   { href: "/pointage", titre: "Pointage" },

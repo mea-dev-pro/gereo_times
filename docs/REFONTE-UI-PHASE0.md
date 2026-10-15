@@ -1,6 +1,8 @@
 # Refonte UI/UX — Phase 0 : analyse et cadrage
 
-**Statut :** en attente de validation. Aucune ligne de code applicatif n'a été modifiée.
+**Statut :** analyse de cadrage — validée le 13 octobre 2026, sprints 1 à 4
+livrés (voir §10 et §11 en fin de document). Les décisions ci-dessus ont été
+prises **avant** d'écrire la moindre ligne de code applicatif.
 **Date :** 13 octobre 2026
 **Référence :** `prd/PRD_GereoTimes_UI_UX.md`
 

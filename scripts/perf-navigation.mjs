@@ -27,7 +27,10 @@ import { chromium } from "playwright";
 const [, , baseURL = "http://localhost:3000", ...args] = process.argv;
 
 const CIBLES = [
-  { href: "/", titre: "Bonjour" },
+  // « Bonjour » ne conviendrait que le matin : la salutation suit l'heure
+  // locale de l'organisation. On attend donc le repère de la semaine, présent
+  // dans l'en-tête à toute heure.
+  { href: "/", titre: "semaine du" },
   { href: "/pointage", titre: "Pointage" },
   { href: "/conges", titre: "Mes congés" },
   { href: "/calendrier", titre: "Calendrier d'équipe" },

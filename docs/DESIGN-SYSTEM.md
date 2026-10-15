@@ -84,7 +84,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `DataTable` | `ui/data-table` | **serveur** — colonnes avec fonction de rendu |
 | `FilterBar`, `FilterField` | `ui/filter-bar` | serveur |
 | `Alert` | `ui/alert` | serveur |
-| `PageHeader` | `page-header` | serveur |
+| `PageHeader` | `page-header` | serveur — `icon` optionnel (décoratif) pour la salutation d'accueil |
 | `SearchInput` | `search-input` | client — filtre par l'URL |
 | `ThemeToggle` | `theme-toggle` | client |
 | `Dialog` | `ui/dialog` | client — `<dialog>` natif |

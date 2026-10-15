@@ -10,9 +10,28 @@ test.describe("Employé", () => {
     page,
   }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Bonjour"
-    );
+
+    // La salutation suit l'heure locale de l'organisation : la figer sur
+    // « Bonjour » ne serait vrai que le matin. On la recalcule depuis le
+    // navigateur, dont le fuseau est celui du projet Playwright
+    // (Indian/Antananarivo), c'est-à-dire celui des organisations de recette.
+    const attendue = await page.evaluate(() => {
+      const parties = new Intl.DateTimeFormat("fr-FR", {
+        hour: "numeric",
+        hourCycle: "h23",
+      }).formatToParts(new Date());
+      const heure = Number(parties.find((p) => p.type === "hour")?.value);
+      if (heure >= 5 && heure < 12) return "Bonjour";
+      if (heure >= 12 && heure < 18) return "Bon après-midi";
+      return "Bonsoir";
+    });
+
+    const titre = page.getByRole("heading", { level: 1 });
+    await expect(titre).toContainText(attendue);
+    // L'icône du moment est décorative : elle n'a pas de nom accessible, donc
+    // on la constate par sa présence et son absence de rôle.
+    await expect(titre.locator("svg[aria-hidden='true']")).toHaveCount(1);
+
     await expect(page.getByText("HEURES CETTE SEMAINE")).toBeVisible();
     await expect(page.getByText("CONGÉS DISPONIBLES")).toBeVisible();
   });

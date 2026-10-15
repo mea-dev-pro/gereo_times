@@ -4,9 +4,13 @@ import {
   CalendarPlus,
   ClipboardCheck,
   Clock,
+  Moon,
+  Sun,
+  Sunset,
   Timer,
   TrendingUp,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { canManage, requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -22,11 +26,24 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard, type StatTint } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDate, formatDateTime, formatMinutes } from "@/lib/utils";
+import { formatDate, formatDateTime, formatMinutes, momentDeLaJournee } from "@/lib/utils";
 import { typesConge } from "@/lib/data/referentiel";
 
 // Page bloquante : elle lit la session et l'heure courante à chaque requête.
 export const instant = false;
+
+/**
+ * Salutation d'accueil : le texte et l'icône suivent le moment de la journée,
+ * comme dans la référence (« Good morning » + soleil).
+ */
+const SALUTATIONS: Record<
+  ReturnType<typeof momentDeLaJournee>,
+  { texte: string; icon: LucideIcon }
+> = {
+  matin: { texte: "Bonjour", icon: Sun },
+  "apres-midi": { texte: "Bon après-midi", icon: Sunset },
+  soir: { texte: "Bonsoir", icon: Moon },
+};
 
 /** Lundi 00:00 de la semaine contenant `date`, en ISO (yyyy-mm-dd). */
 function weekBounds(date: Date) {
@@ -132,7 +149,7 @@ export default async function DashboardPage() {
   // possible, l'ambre une attention requise, la menthe une information neutre.
   const tuiles: {
     tint: StatTint;
-    icon: typeof Clock;
+    icon: LucideIcon;
     valeur: string;
     libelle: string;
     detail: string;
@@ -171,10 +188,20 @@ export default async function DashboardPage() {
     },
   ];
 
+  // La salutation suit l'heure locale de l'organisation : le fuseau de
+  // l'appartenance prime, comme partout dans le schéma (coalesce(m, o)).
+  const salutation =
+    SALUTATIONS[
+      momentDeLaJournee(
+        session.membership.timezone ?? session.organization.timezone
+      )
+    ];
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        title={`Bonjour ${session.profile.full_name?.split(" ")[0] ?? ""}`}
+        icon={salutation.icon}
+        title={`${salutation.texte} ${session.profile.full_name?.split(" ")[0] ?? ""}`}
         description={`${session.organization.name} · semaine du ${semaine.label}`}
         actions={
           <>

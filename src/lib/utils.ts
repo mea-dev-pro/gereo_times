@@ -59,6 +59,42 @@ export function workingDaysBetween(startISO: string, endISO: string): number {
   return count;
 }
 
+/**
+ * Heure locale (0–23) dans un fuseau donné, et moment de la journée qui en
+ * découle pour la salutation d'accueil.
+ *
+ * Le fuseau vient de l'appartenance (repli sur celui de l'organisation) : lire
+ * l'heure du serveur donnerait « Bonjour » à 08 h UTC, soit 11 h à
+ * Antananarivo — et un autre résultat en production, qui tourne en UTC.
+ */
+export type MomentDeLaJournee = "matin" | "apres-midi" | "soir";
+
+function heureLocale(timezone: string, instant: Date): number {
+  try {
+    const parties = new Intl.DateTimeFormat("fr-FR", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: timezone,
+    }).formatToParts(instant);
+    const heure = Number(parties.find((p) => p.type === "hour")?.value);
+    if (Number.isFinite(heure)) return heure;
+  } catch {
+    // Fuseau inconnu — la colonne accepte du texte libre. On retombe sur
+    // l'heure du serveur plutôt que de faire échouer l'écran d'accueil.
+  }
+  return instant.getHours();
+}
+
+export function momentDeLaJournee(
+  timezone: string,
+  instant: Date = new Date()
+): MomentDeLaJournee {
+  const heure = heureLocale(timezone, instant);
+  if (heure >= 5 && heure < 12) return "matin";
+  if (heure >= 12 && heure < 18) return "apres-midi";
+  return "soir";
+}
+
 export const ROLE_LABELS: Record<string, string> = {
   employee: "Employé",
   manager: "Manager",

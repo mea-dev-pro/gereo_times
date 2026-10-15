@@ -71,7 +71,7 @@ attention) et se retrouvent à l'identique sur le tableau de bord et sur
 | Entrée active : pastille blanche bordée | pastille blanche, bordure et texte **violets** (`#7c3aed`) | **écart** — voir §4.b |
 | Logo + bascule de panneau | logo, nom de l'organisation, bascule de thème à trois états en pied | **étendu** : la bascule de thème n'existe pas dans la référence (décision validée n° 2) |
 | Rail d'icônes coloré (5 pastilles + « + ») | absent | **écarté volontairement** (phase 0 §2.4 : icônes d'applications tierces) |
-| Salutation « Good morning, Tahsan! » avec icône soleil | « Bonjour Admin » + période de la semaine, sans icône | **écart mineur** |
+| Salutation « Good morning, Tahsan! » avec icône soleil | « Bonjour » / « Bon après-midi » / « Bonsoir » selon l'heure locale de l'organisation, avec icône soleil, coucher de soleil ou lune | **conforme** |
 | Champ « Search anything » | absent | **décidé** : aucune recherche côté serveur ; filtrage local sur Équipe et Rapports |
 | Onglets internes (`Calender` / `Leave and balances`) | onglets d'ancrage sur Paramètres RH (5 sections) ; « Mes congés » empile ses sections sans onglets | **divergence de mise en page assumée** |
 | Bouton « Today » | bouton « Aujourd'hui » + navigation précédent/suivant | **conforme** |
@@ -145,9 +145,9 @@ comme valeur appliquée, pas comme valeur mesurée sur la référence.
 
 | # | Écart | Ampleur | Proposition |
 | --- | --- | --- | --- |
-| a | **Navigation mobile non compacte** — 663 px avant le contenu | **élevée** | Menu repliable sans JavaScript (`<details>`) sous le point de rupture `lg`, ou barre compacte avec « Menu » et panneau déroulant. À noter : le test `mobile.spec.ts` « la navigation reste utilisable » devra ouvrir le menu avant de vérifier les liens — le test doit suivre le geste de l'utilisateur |
+| a | Navigation mobile non compacte — 663 px avant le contenu | élevée | **corrigé le 14/10** : rail permanent au-dessus de 1024 px, barre repliable avec panneau en dessous (voir `DESIGN-SYSTEM.md`, « Rail de navigation et responsive ») |
 | b | Entrée active violette (bordure + texte) là où la référence reste neutre | faible | À trancher : neutre comme la référence, ou violet comme aujourd'hui (plus lisible pour « où suis-je ») |
-| c | Pas de salutation horodatée (« Bonjour », pas « Bonjour + matin/après-midi »), pas d'icône | faible | Ajouter l'icône soleil/lune et la variante matin/après-midi |
+| c | Salutation non horodatée (« Bonjour » seul, sans icône) | faible | **corrigé** : trois moments (matin / après-midi / soir), calculés dans le fuseau de l'organisation, avec l'icône correspondante (`PageHeader icon`) |
 | d | Pas de recherche globale | moyenne | **Tranché en phase 0** : filtrage local uniquement. À ne rouvrir que si une recherche serveur est approuvée |
 | e | Grille du calendrier en bandes hebdomadaires au lieu d'une grille continue | faible | Assumé : les bandes rendent les semaines lisibles et les barres s'y accrochent proprement |
 | f | Indicateur Next.js Devtools présent en développement sur les captures | nulle | **corrigé** : le script de capture le retire ; les 20 images livrées sont propres |
@@ -180,16 +180,21 @@ comme valeur appliquée, pas comme valeur mesurée sur la référence.
 | 5 | Fond de la barre latérale en blanc avec filet, et non `#f8f9fb` | cette revue — la référence rendait la limite invisible |
 | 6 | Indicateur de développement retiré des captures | cette revue |
 | 7 | Écarts mineurs de forme (cercle du jour, pastille active, grille) assumés | cette revue |
+| 8 | Salutation horodatée dans le fuseau de l'organisation (matin / après-midi / soir) et icône correspondante | écart résiduel §4.c |
+| 9 | Écart §4.a résolu : rail permanent au-dessus de 1024 px, barre repliable en dessous | navigation mobile, 14/10 |
 
 ## 7. Question à trancher
 
-**La navigation mobile** (§4.a). C'est le seul écart qui change l'usage
-quotidien : trois clics de défilement avant d'atteindre l'action principale sur
-un téléphone. Trois options :
+**L'entrée de navigation active** (§4.b). La référence la laisse neutre ; elle est
+ici blanche, bordée et écrite en violet `#7c3aed`. La question est de savoir si
+« où suis-je » doit être signalé par la couleur.
 
-1. menu repliable en `<details>` sous `lg` — aucune dépendance, ~15 lignes, le
-   test mobile est adapté ;
-2. barre compacte en haut (logo + bouton « Menu ») ouvrant un panneau, plus
-   proche des usages mobiles, mais demande un peu plus de code et d'états ;
-3. laisser tel quel, en considérant que l'application est d'abord utilisée au
-   bureau.
+1. garder le violet — c'est plus lisible, et c'est la seule marque de position
+   dans un rail qui porte déjà des icônes ;
+2. revenir au neutre de la référence — plus fidèle, l'icône et le fond blanc
+   bordé suffisant à distinguer l'entrée active.
+
+Les deux tiennent AA : la bordure et le texte violets sur blanc sont à 5,70:1.
+
+Le reste de la liste des écarts §4 est soit corrigé (a, c, f), soit tranché
+(d, e), soit assumé et documenté.

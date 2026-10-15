@@ -1,18 +1,25 @@
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * En-tête de page unifié : titre, description, actions.
  * Jusqu'ici chaque page réécrivait son propre titre avec une taille différente.
+ *
+ * `icon` est optionnel : il n'est utilisé que là où la référence en montre un
+ * (la salutation du tableau de bord). Il est décoratif — `aria-hidden` — pour
+ * que le nom accessible du titre reste le texte seul.
  */
 export function PageHeader({
   title,
   description,
   actions,
+  icon: Icon,
   className,
 }: {
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
+  icon?: LucideIcon;
   className?: string;
 }) {
   return (
@@ -23,7 +30,10 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-content sm:text-2xl">
+        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-content sm:text-2xl">
+          {Icon ? (
+            <Icon className="size-5 shrink-0 text-brand" aria-hidden="true" />
+          ) : null}
           {title}
         </h1>
         {description ? (
