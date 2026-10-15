@@ -103,7 +103,7 @@ async function connexion(motDePasse) {
 }
 
 /** Lien de réinitialisation, tel qu'il partirait par courriel. */
-async function lienDeReinitialisation() {
+async function lienDeReinitialisation(cible = BASE) {
   const r = await fetch(`${SUPABASE}/auth/v1/admin/generate_link`, {
     method: "POST",
     headers: enTetesService,
@@ -111,7 +111,7 @@ async function lienDeReinitialisation() {
       type: "recovery",
       email,
       // Nom brut de l'API : le client JavaScript traduit `options.redirectTo`.
-      redirect_to: `${BASE}/auth/reinitialiser`,
+      redirect_to: `${cible}/auth/reinitialiser`,
     }),
   });
   const corps = await r.json().catch(() => null);
@@ -120,13 +120,25 @@ async function lienDeReinitialisation() {
 }
 
 /**
- * Suit le lien de vérification sans le consommer dans un navigateur : la
- * réponse 302 indique où Supabase envoie l'utilisateur, donc si l'adresse de
- * retour est bien dans la liste blanche du projet.
+ * Adresse de retour portée par un lien, une fois suivi. C'est elle qui dit si
+ * le projet accepte l'origine demandée : hors liste blanche, Supabase renvoie
+ * vers sa « Site URL », sans jeton.
  */
-async function destinationDuLien(actionLink) {
+async function adresseDeRetour(actionLink) {
   const r = await fetch(actionLink, { redirect: "manual" });
-  return { statut: r.status, location: r.headers.get("location") };
+  return r.headers.get("location") ?? "";
+}
+
+/** Jetons ou code d'échange contenus dans une adresse de retour, s'il y en a. */
+function sessionDepuis(location) {
+  const fragment = location.includes("#")
+    ? location.slice(location.indexOf("#"))
+    : "";
+  if (fragment.includes("access_token")) return { fragment };
+
+  const code = new URLSearchParams(location.split("?")[1] ?? "").get("code");
+  if (code) return { requete: `?code=${encodeURIComponent(code)}` };
+  return null;
 }
 
 const navigateur = await chromium.launch();
@@ -213,20 +225,40 @@ try {
   );
   if (!actionLink) throw new Error("pas de lien à ouvrir");
 
-  const { location } = await destinationDuLien(actionLink);
-  const retourAccepte = Boolean(location && location.startsWith(BASE));
+  const retour = await adresseDeRetour(actionLink);
+  const retourAccepte = retour.startsWith(BASE);
   verifier(
     `l'adresse de retour ${BASE}/auth/reinitialiser est autorisée par Supabase`,
     retourAccepte,
-    location
-      ? `Supabase redirige vers ${location.split("#")[0].split("?")[0]} — ` +
+    retourAccepte
+      ? ""
+      : `Supabase renvoie vers ${retour.split("#")[0].split("?")[0]} — ` +
         "ajoutez l'adresse dans Authentication → URL Configuration"
-      : "aucune redirection renvoyée"
   );
 
-  // Sans entrée dans la liste blanche, on rejoue le lien à la main sur la
-  // bonne origine : ce sont les mêmes jetons, à usage unique.
-  const cible = retourAccepte ? location : await lienRejoueSur(actionLink);
+  // Hors liste blanche, le lien ne porte aucun jeton : on en redemande un pour
+  // une origine acceptée (l'adresse locale, celle de la « Site URL » du projet)
+  // et on rejoue SA session sur l'origine visée. Mêmes jetons, à usage unique :
+  // cela ne contourne rien, cela permet de vérifier l'écran là où il est servi.
+  let cible = retour;
+  if (!retourAccepte) {
+    const secours = await lienDeReinitialisation("http://localhost:3000");
+    const lienSecours = secours.action_link ?? secours.properties?.action_link;
+    if (!lienSecours) throw new Error("aucun lien de secours généré");
+    const retourSecours = await adresseDeRetour(lienSecours);
+    const session = sessionDepuis(retourSecours);
+    if (!session) {
+      throw new Error(
+        "aucune session dans le lien de secours : " +
+          retourSecours.split("#")[0].split("?")[0]
+      );
+    }
+    cible = `${BASE}/auth/reinitialiser${session.fragment ?? session.requete}`;
+    console.log(
+      "  note  la session du lien de secours est rejouée sur l'origine visée,\n" +
+        "        pour vérifier l'écran malgré l'entrée manquante."
+    );
+  }
 
   // --- 3. Nouveau mot de passe --------------------------------------------
   await page.goto(cible);
@@ -273,20 +305,6 @@ try {
 } finally {
   await navigateur.close();
   if (id) await supprimerCompte(id);
-}
-
-/** Reconstruit le lien sur l'origine visée, à partir des jetons renvoyés. */
-async function lienRejoueSur(actionLink) {
-  const r = await fetch(actionLink, { redirect: "manual" });
-  const location = r.headers.get("location") ?? "";
-  const fragment = location.includes("#") ? location.slice(location.indexOf("#")) : "";
-  if (fragment.includes("access_token")) return `${BASE}/auth/reinitialiser${fragment}`;
-
-  const parametres = new URLSearchParams(location.split("?")[1] ?? "");
-  const code = parametres.get("code");
-  if (code) return `${BASE}/auth/reinitialiser?code=${code}`;
-
-  throw new Error("le lien ne porte ni jeton ni code exploitable");
 }
 
 async function texteVisible(page) {
