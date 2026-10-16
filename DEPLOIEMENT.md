@@ -190,8 +190,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_DB_URL          (utile seulement aux migrations, peut être omise en production)
 CRON_SECRET              (obligatoire : sans lui, la tâche planifiée refuse tout appel)
-RESEND_API_KEY           (facultatif)
-EMAIL_FROM               (facultatif)
+RESEND_API_KEY           (facultatif — notifications et lien d'invitation)
+EMAIL_FROM               (facultatif — notifications et lien d'invitation)
 ```
 
 Ne marquez **jamais** `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`,
@@ -265,7 +265,9 @@ Deux points restent à faire, hors CLI :
    access), puis relancer `vercel git connect`. En attendant, publier se fait
    par `vercel deploy --prod`.
 2. **Clé Resend.** `RESEND_API_KEY` et `EMAIL_FROM` : sans elles la file
-   d'envoi reste pleine. Les créer sur resend.com, puis les poser sur Vercel
+   d'envoi reste pleine et le lien d'activation des invitations n'est plus
+   expédié (il s'affiche à l'écran, renvoyable depuis `/equipe`). Les créer sur
+   resend.com, puis les poser sur Vercel
    (`vercel env add` en collant la valeur sur l'entrée standard — jamais dans
    `argv`). Une fois posées, la vérification se fait avec le serveur local
    démarré :
@@ -330,8 +332,9 @@ npm run e2e:auth && npm run e2e
 Puis, à la main :
 
 1. `/inscription` crée une organisation et ses données d'amorçage
-2. `/equipe` génère un lien d'activation ; l'ouvrir rattache le collaborateur
-   avec le rôle prévu
+2. `/equipe` envoie l'email d'activation au collaborateur ; l'ouvrir rattache le
+   collaborateur avec le rôle prévu (sans clé Resend, le lien est affiché à
+   l'écran et le renvoi se fait depuis la liste des invitations)
 3. Un pointage aller-retour apparaît dans l'historique avec l'écart calculé
 4. Une demande de congé est visible par le manager et validable
 5. `/rapports` télécharge les trois exports CSV
@@ -491,13 +494,16 @@ Vercel.
 **Sauvegardes.** Supabase sauvegarde quotidiennement selon votre offre.
 Vérifiez la rétention (Database → Backups) et testez une restauration.
 
-**Envois email.** Sans `RESEND_API_KEY` ni `EMAIL_FROM`, aucune notification
-n'est expédiée : l'application reste fonctionnelle, les messages restent
-internes. Avec elles, les envois partent de deux façons : immédiatement après
-l'action qui les déclenche (demande de congé, validation), et au plus tard par
-la tâche planifiée quotidienne, qui dépile ce qui reste. Les envois en attente
-et les échecs sont visibles dans `public.notifications` (`email_sent_at`,
-`email_error` — une erreur sort la ligne de la file pour qu'elle reste
+**Envois email.** Sans `RESEND_API_KEY` ni `EMAIL_FROM`, aucun email ne part :
+l'application reste fonctionnelle, les messages restent internes et le lien
+d'activation d'une invitation s'affiche à l'écran du RH. Avec elles, les envois
+partent de trois façons : immédiatement après l'action qui les déclenche (demande
+de congé, validation), au moment même de l'invitation (le lien d'activation part
+au collaborateur, sans jamais être écrit en base), et au plus tard par la tâche
+planifiée quotidienne, qui dépile ce qui reste. Les envois de notifications en
+attente et les échecs sont visibles dans `public.notifications`
+(`email_sent_at`, `email_error` — une erreur sort la ligne de la file pour
+qu'elle reste
 examinable).
 
 **Chaîne d'envoi déjà éprouvée.** Avec une clé volontairement invalide, la tâche

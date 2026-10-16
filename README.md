@@ -38,10 +38,12 @@ Puis, depuis Project Settings → Database → Connection string :
 
 - `SUPABASE_DB_URL` — nécessaire pour appliquer les migrations
 
-Pour les notifications par email (facultatif) :
+Pour les emails sortants (facultatif) :
 
 - `RESEND_API_KEY` et `EMAIL_FROM` — sans eux, l'application fonctionne
-  normalement et aucun email n'est expédié ; les notifications restent internes
+  normalement et aucun email n'est expédié : les notifications restent internes
+  et le lien d'activation d'un collaborateur est affiché à l'écran, à
+  transmettre à la main
 
 Pour la tâche planifiée (obligatoire en production) :
 
@@ -219,8 +221,10 @@ lien quand la liste blanche du projet n'a pas été mise à jour.
 - demandes de congés, validation, refus motivé, annulation avec restitution
 - soldes de congés reconstruits depuis le journal des mouvements
 - tableau de bord et écran de validations manager
-- **invitations de collaborateurs** : lien d'activation sans mot de passe,
-  acceptation automatique à la première connexion, révocation
+- **invitations de collaborateurs** : le lien d'activation part directement par
+  email au collaborateur (sans clé Resend, il est affiché à l'écran du RH, et
+  renvoyable depuis la liste des invitations), acceptation automatique à la
+  première connexion, révocation
 - **gestion de l'équipe** : rôles, rattachement hiérarchique, désactivation
 - **administration RH** : départements, jours fériés, types de congés,
   politiques versionnées (acquisition, préavis, niveaux de validation),

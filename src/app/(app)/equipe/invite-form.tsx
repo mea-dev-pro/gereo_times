@@ -16,7 +16,7 @@ const ROLES = [
   { value: "admin", label: "Administrateur" },
 ];
 
-function ActivationLink({ url }: { url: string }) {
+export function ActivationLink({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -63,6 +63,11 @@ export function InviteForm({ managers }: { managers: ManagerOption[] }) {
       {state?.success && (
         <div>
           <Alert variant="success">{state.success}</Alert>
+          {state.notice && (
+            <Alert variant="warning" className="mt-2">
+              {state.notice}
+            </Alert>
+          )}
           {state.link && <ActivationLink url={state.link} />}
         </div>
       )}

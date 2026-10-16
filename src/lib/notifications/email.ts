@@ -1,17 +1,21 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Expédition des notifications par email.
+ * Expédition des emails.
  *
- * La table notifications sert de boîte d'envoi : les RPC métier y déposent les
- * messages, puis `dispatchPendingEmails` les expédie. Deux raisons à ce
- * détour plutôt qu'un envoi direct depuis les actions :
+ * Un seul transport, deux usages :
  *
- *  - un échec d'API n'annule jamais l'opération métier qui l'a déclenché ;
- *  - les envois en attente sont visibles et réessayables en base.
+ *  - les notifications — la table `notifications` sert de boîte d'envoi : les
+ *    RPC métier y déposent les messages, `dispatchPendingEmails` les expédie.
+ *    Deux raisons à ce détour : un échec d'API n'annule jamais l'opération
+ *    métier qui l'a déclenché, et la file reste visible et réessayable en base.
+ *  - les invitations — le lien d'activation part directement au collaborateur
+ *    (voir `inviteMember`). Il n'est jamais écrit en base : il n'existe que
+ *    dans la boîte du destinataire, et à l'écran du RH s'il n'a pas pu partir.
+ *    Un lien d'activation stocké serait un mot de passe en clair déguisé.
  *
- * Sans RESEND_API_KEY ni EMAIL_FROM, la fonction ne fait rien et le signale :
- * l'application reste entièrement fonctionnelle, sans emails.
+ * Sans RESEND_API_KEY ni EMAIL_FROM, `emailConfigured()` est faux, rien n'est
+ * tenté et l'application reste entièrement fonctionnelle, sans emails.
  */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -20,7 +24,7 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
-async function sendEmail(params: {
+export async function sendEmail(params: {
   to: string;
   subject: string;
   text: string;

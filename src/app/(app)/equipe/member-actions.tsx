@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
+  resendInvitation,
   revokeInvitation,
   setMemberStatus,
   updateMemberRole,
@@ -10,6 +11,7 @@ import type { ActionState } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
 import type { OrgRole } from "@/types/database";
+import { ActivationLink } from "./invite-form";
 
 const ROLES: { value: OrgRole; label: string }[] = [
   { value: "employee", label: "Employé" },
@@ -85,6 +87,56 @@ export function MemberRowActions({
         </Button>
       </div>
       <Feedback state={state} />
+    </div>
+  );
+}
+
+/**
+ * Actions d'une invitation en attente : renvoyer le lien, ou révoquer.
+ *
+ * Le renvoi régénère un lien à chaque appel (Supabase n'en conserve aucun) et
+ * l'expédie. Si l'envoi automatique est désactivé ou échoue, le lien apparaît
+ * ici, à transmettre à la main — l'invitation n'est jamais bloquée.
+ */
+export function InvitationActions({
+  invitationId,
+  email,
+}: {
+  invitationId: string;
+  email: string;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<ActionState>(null);
+
+  return (
+    <div className="flex max-w-[22rem] flex-col items-end gap-1">
+      <div className="flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          aria-label={`Renvoyer le lien d'activation à ${email}`}
+          onClick={() =>
+            startTransition(async () => {
+              setState(await resendInvitation(invitationId));
+            })
+          }
+        >
+          {pending ? "…" : "Renvoyer le lien"}
+        </Button>
+        <RevokeInvitationButton invitationId={invitationId} />
+      </div>
+
+      {state?.success && (
+        <p className="text-right text-xs text-emerald-800">{state.success}</p>
+      )}
+      {state?.notice && (
+        <p className="text-right text-xs text-content-muted">{state.notice}</p>
+      )}
+      {state?.error && (
+        <p className="text-right text-xs text-red-600">{state.error}</p>
+      )}
+      {state?.link && <ActivationLink url={state.link} />}
     </div>
   );
 }

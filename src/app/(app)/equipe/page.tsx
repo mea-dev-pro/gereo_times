@@ -20,7 +20,7 @@ import { formatDate, ROLE_LABELS } from "@/lib/utils";
 import type { MemberStatus, OrgRole, Tables } from "@/types/database";
 import { departements } from "@/lib/data/referentiel";
 import { InviteForm, type ManagerOption } from "./invite-form";
-import { MemberRowActions, RevokeInvitationButton } from "./member-actions";
+import { InvitationActions, MemberRowActions } from "./member-actions";
 
 export const metadata: Metadata = { title: "Équipe" };
 
@@ -241,8 +241,9 @@ export default async function EquipePage({
         <CardHeader>
           <CardTitle>Inviter un collaborateur</CardTitle>
           <CardDescription>
-            Un lien d&apos;activation est généré : le collaborateur y définit son
-            propre mot de passe et rejoint l&apos;organisation automatiquement.
+            Le collaborateur reçoit un email avec un lien d&apos;activation : il y
+            définit son propre mot de passe et rejoint l&apos;organisation
+            automatiquement.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -280,7 +281,7 @@ export default async function EquipePage({
                     {formatDate(inv.expires_at.slice(0, 10))}
                   </p>
                 </div>
-                <RevokeInvitationButton invitationId={inv.id} />
+                <InvitationActions invitationId={inv.id} email={inv.email} />
               </div>
             ))}
           </CardContent>

@@ -10,6 +10,8 @@ export type ActionState = {
   success?: string;
   /** Lien d'activation à transmettre (invitations). */
   link?: string;
+  /** Information neutre : ni échec, ni confirmation (envoi email désactivé). */
+  notice?: string;
 } | null;
 
 /** Convertit les messages d'erreur Supabase en français. */
