@@ -94,6 +94,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `PasswordInput` | `ui/password-input` | client — champ mot de passe affichable à la demande |
 | `OAuthButtons` | `oauth-buttons` | client — boutons des fournisseurs d'identité réellement activés |
 | `MarqueFournisseur` | `marques-fournisseurs` | serveur — marques officielles des fournisseurs (couleurs de marque, hors thème) |
+| `Wordmark` | `wordmark` | serveur — le mot-marque « Gereo⏱Times » : le « o » remplacé par l'icône du minuteur |
 | `ToastProvider`, `useToast` | `ui/toast` | client |
 
 `StatusBadge` et `EmptyState` sont ré-exportés depuis `ui/badge` et `ui/alert` :
@@ -113,6 +114,49 @@ L'élément natif en mode modal fournit gratuitement le piégeage du focus, la
 fermeture par Échap, l'inertie du contenu derrière et le retour du focus sur le
 déclencheur — les quatre points que le critère UX-06 exige et qu'une modale
 improvisée rate le plus souvent. Aucune dépendance ajoutée.
+
+### Le mot-marque, et pourquoi le « o » est un minuteur
+
+« Gere⏱Times » : le « o » de Gereo garde sa place dans le texte mais perd son
+corps, et l'icône `Timer` de Lucide occupe sa place à l'écran
+(`src/components/wordmark.tsx`). C'est l'objet même de l'application — le temps
+qui se mesure — à l'endroit qu'occuperait la lettre. Le composant est utilisé aux
+quatre endroits où le mot-marque apparaît : barre du haut (téléphone et
+tablette), rail de bureau, écrans publics (`AuthShell`), écran « dernière
+étape » d'une nouvelle organisation.
+
+Trois règles, chacune née d'un défaut constaté :
+
+- **Le « o » reste dans le texte**, écrit mais sans corps (`text-[0px]`). Une
+  image ne se prononce pas : sans la lettre, le mot-marque s'annonce « GerTimes »
+  au lecteur d'écran et se copie amputé. Deux contournements ont été mesurés
+  dans le navigateur puis écartés : `sr-only`, et la lettre transparente
+  recouverte par une icône en position absolue. Tous deux placent un élément
+  **hors flux**, ce qui crée une rupture de bloc : le texte rendu devenait
+  « Gere o Times » — exactement ce que relève `clavier.spec.ts`, qui lit
+  `innerText` de l'élément focalisé pour établir l'ordre de tabulation.
+- **Le conteneur n'est pas un `flex`.** Mesuré aussi : dans un conteneur flex
+  chaque enfant devient un bloc, et le même texte se coupe en trois lignes. Le
+  mot-marque est donc un simple flux en ligne, où l'icône s'insère comme une
+  lettre (`inline-block align-middle`).
+- **Tout est en `em`** — taille, graisse, alignement (`size-[1.05em]`,
+  `stroke-[0.09em]`) : un seul composant tient à `text-base` (barre du haut),
+  `text-lg` (rail) et `text-2xl` (écrans publics), sans variante par taille. La
+  couleur vient du parent : seul « Times » porte `text-brand-strong`, comme
+  avant. L'icône est décorative (`aria-hidden`) : une lettre dessinée, pas une
+  information.
+
+La taille n'est pas arbitraire : à `0.85em` — la première mesure — le cercle
+devenait si petit que le bouton du chronomètre se lisait comme un tréma
+(« GeröTimes »). À `1.05em`, le cercle fait environ `0.75em`, la hauteur d'un
+« o » gras, et le chronomètre se reconnaît. C'est une valeur mesurée à l'écran,
+en clair et en sombre, aux trois tailles.
+
+Mesures de contrôle (Chromium, `ariaSnapshot` et `innerText`) : le texte rendu
+comme le texte du DOM sont exactement « GereoTimes » aux trois tailles. Le nom
+accessible calculé, lui, ressort en « Gereo Times » — Chromium sépare les nœuds
+de texte par une espace — et c'était déjà le cas avec le balisage précédent
+(`Gereo` + `<span>Times</span>`) : rien n'a régressé de ce côté.
 
 ---
 
@@ -231,9 +275,10 @@ lit la largeur réelle pour décider de ce qui est attendu, de sorte qu'il affir
 quelque chose aux trois largeurs plutôt que de s'ignorer là où il ne s'applique
 pas. Il vérifie notamment que le contenu ne bouge pas d'un pixel à l'ouverture :
 c'est la preuve que la navigation ne réserve plus d'espace. Au bureau, un
-contrôle supplémentaire allonge la page à la main, la fait défiler, et exige que
-le rail ne bouge pas d'un pixel et que « Se déconnecter » reste dans la fenêtre :
-c'est la preuve qu'il ne suit plus la hauteur du contenu.
+contrôle supplémentaire fixe sa propre fenêtre (1440 × 900), ouvre le pointage du
+mois, fait défiler la page et exige que le rail ne bouge pas d'un pixel et que
+« Se déconnecter » reste dans la fenêtre : c'est la preuve qu'il ne suit plus la
+hauteur du contenu.
 `tests/e2e/mobile.spec.ts` couvre la cible tactile, la fermeture par le voile,
 les deux autres fermetures, et le fait que le focus n'entre jamais dans le
 contenu recouvert.

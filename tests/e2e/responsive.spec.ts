@@ -136,23 +136,26 @@ test.describe("Responsive — rail de navigation", () => {
   test("au bureau, le rail reste en place pendant que la page défile", async ({
     page,
   }) => {
-    await page.goto("/");
-    const grand = largeur(page) >= SEUIL;
+    // Le contrôle porte sur le rail de bureau : il fixe donc lui-même sa fenêtre
+    // (1440 × 900) plutôt que de dépendre du projet Playwright et de s'ignorer
+    // aux trois quarts. La page de pointage du mois dépasse alors largement
+    // l'écran (mesuré : 2120 px), sans rien injecter dans le contenu — une
+    // injection dans `main` est effacée par l'hydratation si elle tombe trop
+    // tôt, ce qui rendait ce test instable. 900 px de haut, et non moins : en
+    // dessous de ~600 px, le contenu du rail ne tient plus dans la fenêtre et
+    // c'est le rail lui-même qui défile — ce que d'autres contrôles couvrent.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/pointage");
+
+    // La page arrive en flux : mesurer avant que le dernier bloc soit peint
+    // donne une hauteur incomplète, et le contrôle se croit alors sans objet
+    // (constaté). On attend donc le dernier intitulé de la page.
+    await expect(
+      page.getByRole("heading", { name: "Mes corrections" })
+    ).toBeVisible();
+
     const rail = page.locator("#rail-navigation");
-
-    // Seul le bureau est concerné : le tiroir, lui, est déjà hors du flux.
-    if (!grand) {
-      await expect(rail).toBeHidden();
-      return;
-    }
-
-    // Une page courte ne prouve rien : on allonge le contenu à la main pour que
-    // la page défile, quelle que soit la donnée de recette.
-    await page.evaluate(() => {
-      const poumon = document.createElement("div");
-      poumon.style.height = "3000px";
-      document.querySelector("main")?.append(poumon);
-    });
+    await expect(rail).toBeVisible();
 
     const defilable = await page.evaluate(
       () => document.documentElement.scrollHeight > window.innerHeight + 100
@@ -162,17 +165,17 @@ test.describe("Responsive — rail de navigation", () => {
       "la page doit défiler pour que ce contrôle ait un sens"
     ).toBe(true);
 
+    const ecran = await page.evaluate(() => window.innerHeight);
     const avant = await rail.boundingBox();
     expect(avant).not.toBeNull();
 
     // Le rail occupe exactement un écran : c'est ce qui le rend collant, et
     // c'est ce qui a remplacé « hauteur du contenu de la page ».
-    const ecran = await page.evaluate(() => window.innerHeight);
     expect(Math.abs(avant!.height - ecran)).toBeLessThanOrEqual(1);
     expect(avant!.y).toBeLessThanOrEqual(1);
 
-    await page.evaluate(() => window.scrollTo(0, 1500));
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+    await page.evaluate(() => window.scrollTo(0, 1200));
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
 
     await expect
       .poll(async () => (await rail.boundingBox())?.y ?? -1, {

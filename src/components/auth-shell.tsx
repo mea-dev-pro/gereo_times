@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Wordmark } from "@/components/wordmark";
 
 /**
  * Habillage des écrans publics : l'entrée de l'application.
@@ -39,7 +40,7 @@ export function AuthShell({
       <header className="relative z-10 flex items-center justify-between gap-3 px-5 py-5 sm:px-8 lg:px-12">
         <Link href="/connexion" className="min-w-0">
           <span className="block text-xl font-semibold tracking-tight text-content sm:text-2xl">
-            Gereo<span className="text-brand-strong">Times</span>
+            <Wordmark />
           </span>
           <span className="mt-0.5 hidden text-xs text-content-muted sm:block">
             Gestion du temps de travail et des congés

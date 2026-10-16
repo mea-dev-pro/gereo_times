@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { NavLinks, type NavGroup, type NavItem } from "@/components/nav-links";
 import { AppShell } from "@/components/app-shell";
+import { Wordmark } from "@/components/wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ToastProvider } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,7 @@ export default async function AppLayout({
                 href="/"
                 className="text-lg font-semibold tracking-tight text-content"
               >
-                Gereo<span className="text-brand-strong">Times</span>
+                <Wordmark />
               </Link>
               <p className="mt-1 truncate text-xs font-medium text-content-subtle">
                 {session.organization.name}

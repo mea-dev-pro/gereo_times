@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { Wordmark } from "@/components/wordmark";
 import { OrganizationForm } from "./org-form";
 
 export const metadata: Metadata = { title: "Nouvelle organisation" };
@@ -31,7 +32,7 @@ export default async function NouvelleOrganisationPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <span className="text-2xl font-semibold tracking-tight text-content">
-            Gereo<span className="text-brand-strong">Times</span>
+            <Wordmark />
           </span>
         </div>
 

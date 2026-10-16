@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Wordmark } from "@/components/wordmark";
 
 /**
  * Gabarit de l'espace authentifié : barre du haut, navigation, contenu.
@@ -144,7 +145,7 @@ export function AppShell({
             href="/"
             className="text-base font-semibold tracking-tight text-content"
           >
-            Gereo<span className="text-brand-strong">Times</span>
+            <Wordmark />
           </Link>
           <p className="truncate text-[11px] font-medium text-content-subtle">
             {organisation}
