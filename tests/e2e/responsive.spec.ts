@@ -133,6 +133,60 @@ test.describe("Responsive — rail de navigation", () => {
     }
   });
 
+  test("au bureau, le rail reste en place pendant que la page défile", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const grand = largeur(page) >= SEUIL;
+    const rail = page.locator("#rail-navigation");
+
+    // Seul le bureau est concerné : le tiroir, lui, est déjà hors du flux.
+    if (!grand) {
+      await expect(rail).toBeHidden();
+      return;
+    }
+
+    // Une page courte ne prouve rien : on allonge le contenu à la main pour que
+    // la page défile, quelle que soit la donnée de recette.
+    await page.evaluate(() => {
+      const poumon = document.createElement("div");
+      poumon.style.height = "3000px";
+      document.querySelector("main")?.append(poumon);
+    });
+
+    const defilable = await page.evaluate(
+      () => document.documentElement.scrollHeight > window.innerHeight + 100
+    );
+    expect(
+      defilable,
+      "la page doit défiler pour que ce contrôle ait un sens"
+    ).toBe(true);
+
+    const avant = await rail.boundingBox();
+    expect(avant).not.toBeNull();
+
+    // Le rail occupe exactement un écran : c'est ce qui le rend collant, et
+    // c'est ce qui a remplacé « hauteur du contenu de la page ».
+    const ecran = await page.evaluate(() => window.innerHeight);
+    expect(Math.abs(avant!.height - ecran)).toBeLessThanOrEqual(1);
+    expect(avant!.y).toBeLessThanOrEqual(1);
+
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
+    await expect
+      .poll(async () => (await rail.boundingBox())?.y ?? -1, {
+        message: "le rail ne doit pas suivre le défilement",
+      })
+      .toBeLessThanOrEqual(1);
+
+    // Et les commandes du bas du rail restent à l'écran, sans avoir à descendre
+    // au bout de la page pour les atteindre.
+    await expect(
+      page.getByRole("button", { name: "Se déconnecter" })
+    ).toBeInViewport();
+  });
+
   test("Échap referme le panneau là où il est repliable", async ({ page }) => {
     await page.goto("/");
     const grand = largeur(page) >= SEUIL;

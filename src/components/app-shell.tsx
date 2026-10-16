@@ -15,7 +15,12 @@ import { cn } from "@/lib/utils";
  * Gabarit de l'espace authentifié : barre du haut, navigation, contenu.
  *
  * Au-dessus de 1024 px (seuil `lg` de Tailwind), le rail est une colonne
- * permanente de 256 px : rien ne change pour le bureau.
+ * permanente de 256 px, COLLÉE en haut de la fenêtre et haute d'un écran
+ * (`sticky top-0 h-dvh`). Il ne prend donc plus la hauteur du contenu : sur une
+ * page longue — un tableau de pointage, un rapport — il reste en place pendant
+ * que la page défile, et les commandes du bas (compte, « Se déconnecter »)
+ * restent atteignables sans descendre au bout de la page. Quand la fenêtre est
+ * plus courte que le rail, c'est le rail lui-même qui défile, pas la page.
  *
  * En dessous, la navigation est un TIROIR : un panneau fixe qui glisse depuis
  * la gauche PAR-DESSUS le contenu, sous la barre du haut, avec un voile
@@ -205,9 +210,13 @@ export function AppShell({
           "transition-[transform,visibility] duration-200 ease-out",
           ouvert ? "visible translate-x-0" : "invisible -translate-x-full",
           // Au-dessus de 1024 px : colonne du flux, à gauche, sans voile ni
-          // animation. Les variantes passent après, elles l'emportent sur
-          // l'état replié.
-          "lg:static lg:inset-auto lg:z-auto lg:visible lg:w-64 lg:max-w-none lg:translate-x-0 lg:overflow-y-visible lg:border-b-0 lg:shadow-none lg:transition-none",
+          // animation — mais collée en haut et haute d'un écran. `bottom-auto`
+          // et `left-auto` neutralisent les décalages du tiroir (`bottom-0`,
+          // `left-0`, `top-14`) : sans eux, le collage partirait de 56 px sous
+          // le haut de la fenêtre. Les variantes passent après, elles l'emportent
+          // sur l'état replié. Le défilement interne vient de l'`overflow-y-auto`
+          // de base, qui vaut aussi au bureau.
+          "lg:sticky lg:top-0 lg:bottom-auto lg:left-auto lg:z-auto lg:visible lg:h-dvh lg:w-64 lg:max-w-none lg:translate-x-0 lg:border-b-0 lg:shadow-none lg:transition-none",
           "lg:flex lg:shrink-0 lg:flex-col"
         )}
       >

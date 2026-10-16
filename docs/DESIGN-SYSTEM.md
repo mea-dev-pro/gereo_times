@@ -89,7 +89,7 @@ Contrastes vérifiés (texte sur fond de tuile) : 7,57 / 7,15 / 6,38 / 6,73 /
 | `SearchInput` | `search-input` | client — filtre par l'URL |
 | `ThemeToggle` | `theme-toggle` | client |
 | `Dialog` | `ui/dialog` | client — `<dialog>` natif |
-| `AppShell` | `app-shell` | client — barre du haut, rail permanent au-dessus de 1024 px, tiroir coulissant en dessous, contenu inerte tant qu'il est recouvert |
+| `AppShell` | `app-shell` | client — barre du haut, rail collé de 256 px et haut d'un écran au-dessus de 1024 px, tiroir coulissant en dessous, contenu inerte tant qu'il est recouvert |
 | `AuthShell`, `AuthCard` | `auth-shell` | serveur — habillage des écrans publics : barre du haut, décor de traits (≥ 1024 px), carte centrée |
 | `PasswordInput` | `ui/password-input` | client — champ mot de passe affichable à la demande |
 | `OAuthButtons` | `oauth-buttons` | client — boutons des fournisseurs d'identité réellement activés |
@@ -176,8 +176,14 @@ Masquer une entrée de navigation n'est pas une protection.
 ### Rail de navigation et responsive
 
 Le seuil est celui de Tailwind : `lg`, soit 1024 px. Au-dessus, le rail est une
-colonne permanente de 256 px à gauche et rien ne change. En dessous — téléphone
-et tablette — la navigation est un **tiroir** : un panneau fixe de 320 px (jamais
+colonne permanente de 256 px à gauche, **collée en haut de la fenêtre et haute
+d'un écran** (`sticky top-0 h-dvh`). Il ne prend donc pas la hauteur du contenu :
+sur une page longue — pointage du mois, rapport — le rail reste en place pendant
+que la page défile, et les commandes du bas (compte, bascule de thème, « Se
+déconnecter ») restent à l'écran sans qu'il faille descendre au bout de la page.
+Quand la fenêtre est plus courte que le rail, c'est le rail qui défile
+(`overflow-y-auto`), pas la page. En dessous — téléphone et tablette — la
+navigation est un **tiroir** : un panneau fixe de 320 px (jamais
 plus de 85 % de l'écran) qui glisse depuis la gauche **par-dessus** le contenu,
 sous une barre collante de 56 px portant la marque, le nom de l'organisation et
 un bouton `Menu` de 44 px de haut.
@@ -224,7 +230,10 @@ Vérification : `tests/e2e/responsive.spec.ts`, joué par trois projets Playwrig
 lit la largeur réelle pour décider de ce qui est attendu, de sorte qu'il affirme
 quelque chose aux trois largeurs plutôt que de s'ignorer là où il ne s'applique
 pas. Il vérifie notamment que le contenu ne bouge pas d'un pixel à l'ouverture :
-c'est la preuve que la navigation ne réserve plus d'espace.
+c'est la preuve que la navigation ne réserve plus d'espace. Au bureau, un
+contrôle supplémentaire allonge la page à la main, la fait défiler, et exige que
+le rail ne bouge pas d'un pixel et que « Se déconnecter » reste dans la fenêtre :
+c'est la preuve qu'il ne suit plus la hauteur du contenu.
 `tests/e2e/mobile.spec.ts` couvre la cible tactile, la fermeture par le voile,
 les deux autres fermetures, et le fait que le focus n'entre jamais dans le
 contenu recouvert.
