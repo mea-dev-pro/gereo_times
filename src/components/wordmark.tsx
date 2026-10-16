@@ -21,13 +21,13 @@ import { cn } from "@/lib/utils";
  *   cause, même effet — l'icône hors flux coupait la chaîne en deux.
  *
  * L'icône est décorative (`aria-hidden`) — une lettre dessinée, pas une
- * information. Elle clignote par intervalles : un bref éclat toutes les cinq
- * secondes (`--animate-temoin`, défini dans `globals.css`), comme un voyant qui
- * rappelle que le temps tourne, le repos occupant l'essentiel du cycle. Les
- * personnes qui demandent un mouvement réduit ne le voient pas : la règle
- * globale `prefers-reduced-motion` ramène toute animation à 0,01 ms et une seule
- * itération (vérifié : opacité constante à 1). La couleur vient du parent ; seul
- * « Times » porte `text-brand-strong`.
+ * information. Elle clignote par intervalles : trois brefs éclats coup sur coup
+ * (300 ms entre chacun) puis un long repos, l'ensemble toutes les cinq secondes
+ * (`--animate-temoin`, défini dans `globals.css`) — comme un voyant qui rappelle
+ * que le temps tourne. Les personnes qui demandent un mouvement réduit ne le
+ * voient pas : la règle globale `prefers-reduced-motion` ramène toute animation à
+ * 0,01 ms et une seule itération (vérifié : opacité constante à 1). La couleur
+ * vient du parent ; seul « Times » porte `text-brand-strong`.
  *
  * Taille et position : `28px`, `relative`, `top: -5px`, demandées à l'œil par le
  * commanditaire. Conséquence assumée : l'icône ne suit plus la taille du texte,

@@ -152,14 +152,21 @@ proportionnée sur les écrans publics (`text-2xl`), nettement plus grande que l
 lettres dans la barre du haut du téléphone (`text-base`) — constaté sur captures,
 et jugé acceptable ainsi.
 
-L'icône **clignote par intervalles** : `--animate-temoin` (`globals.css`) donne un
-bref éclat toutes les cinq secondes — opacité `1 → 0,45 → 1,12` en échelle sur
-les premiers 12 % du cycle, repos le reste du temps. Un voyant plutôt qu'une
-pulsation continue : une animation permanente attire l'œil sans rien dire, et
-c'est le contenu qui doit le retenir. Mesuré dans le navigateur : opacité
-descendant à `0,46` sur un cycle de 6 s. Avec `prefers-reduced-motion: reduce`,
-la règle globale du fichier de thème ramène l'animation à `0,01 ms` et une seule
-itération — l'icône reste alors parfaitement immobile (opacité constante à 1).
+L'icône **clignote par intervalles** : `--animate-temoin` (`globals.css`) donne
+**trois** brefs éclats coup sur coup — 300 ms entre chacun — puis un long repos,
+et la série repart cinq secondes après la précédente. Chaque éclat descend
+(opacité `0,45`, échelle `0,88`), remonte (`1,12`) puis revient au repos. Trois
+éclats et pas un seul : un éclat isolé se confond avec un scintillement de rendu,
+la série se lit comme un signal volontaire. Et pas une pulsation continue :
+quatre secondes de repos par cycle, parce que c'est le contenu qui doit retenir
+l'attention.
+
+Mesuré dans le navigateur, à la trame (`requestAnimationFrame`, 12 s) : les éclats
+vont par trois, à 300 ms d'intervalle, et le groupe suivant arrive 4400 ms après
+le dernier — soit une période de 5 s exactement, minimum d'opacité `0,45`. Avec
+`prefers-reduced-motion: reduce`, la règle globale du fichier de thème ramène
+l'animation à `0,01 ms` et une seule itération : aucun éclat, opacité constante
+à 1.
 
 Historique utile pour la suite : mesurée d'abord à `0.85em`, l'icône se lisait
 comme un tréma sur un « o » (« GeröTimes ») — le bouton du chronomètre ne se
