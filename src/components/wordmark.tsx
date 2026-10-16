@@ -21,15 +21,20 @@ import { cn } from "@/lib/utils";
  *   cause, même effet — l'icône hors flux coupait la chaîne en deux.
  *
  * L'icône est décorative (`aria-hidden`) — une lettre dessinée, pas une
- * information — et tout est en `em` (taille, graisse, alignement) : le même
- * composant tient à `text-base`, `text-lg` et `text-2xl` sans variante. La
- * couleur vient du parent ; seul « Times » porte `text-brand-strong`.
+ * information. Elle clignote par intervalles : un bref éclat toutes les cinq
+ * secondes (`--animate-temoin`, défini dans `globals.css`), comme un voyant qui
+ * rappelle que le temps tourne, le repos occupant l'essentiel du cycle. Les
+ * personnes qui demandent un mouvement réduit ne le voient pas : la règle
+ * globale `prefers-reduced-motion` ramène toute animation à 0,01 ms et une seule
+ * itération (vérifié : opacité constante à 1). La couleur vient du parent ; seul
+ * « Times » porte `text-brand-strong`.
  *
- * Dimensionnement : le cercle occupe les deux tiers de la boîte de l'icône
- * (`circle r=8` sur 24). À `1.05em`, il fait environ `0.75em` — la hauteur d'un
- * « o » gras — et le bouton du chronomètre reste lisible. Mesuré à `0.85em`
- * d'abord : l'icône se lisait comme un tréma sur un « o » (« GeröTimes »), ce
- * qui ne dit plus « chronomètre ».
+ * Taille et position : `28px`, `relative`, `top: -5px`, demandées à l'œil par le
+ * commanditaire. Conséquence assumée : l'icône ne suit plus la taille du texte,
+ * elle est donc plus grande que les lettres là où le mot-marque est petit
+ * (barre du haut du téléphone, `text-base`) et à peu près à l'échelle sur les
+ * écrans publics (`text-2xl`). La graisse, elle, reste proportionnelle à
+ * l'icône : `stroke-[2.4]` est en unités du dessin (viewBox 24), pas en `em`.
  */
 export function Wordmark({ className }: { className?: string }) {
   return (
@@ -49,11 +54,14 @@ export function Wordmark({ className }: { className?: string }) {
       <span className="text-[0px]">o</span>
       <Timer
         aria-hidden="true"
-        // `stroke-[0.09em]` suit la taille du texte : la graisse du dessin reste
-        // celle du mot-marque, à toutes les tailles. `align-middle` pose le
-        // centre de l'icône sur le milieu de la hauteur d'x, comme le ferait le
-        // centre d'un « o ».
-        className="inline-block size-[1.05em] shrink-0 align-middle stroke-[0.09em]"
+        // 28 px et remonté de 5 px : valeurs demandées, à l'œil, par le
+        // commanditaire. La conséquence est connue et assumée : la taille ne
+        // suit plus celle du texte, l'icône est donc plus grande que les lettres
+        // là où le mot-marque est petit (barre du haut du téléphone).
+        // `stroke-[2.4]` est en unités du dessin (viewBox 24) et non en `em` :
+        // la graisse reste proportionnelle à l'icône, quelle que soit la taille
+        // du texte à côté.
+        className="animate-temoin relative top-[-5px] inline-block size-[28px] align-middle stroke-[2.4]"
       />
       <span className="text-brand-strong">Times</span>
     </span>

@@ -82,6 +82,36 @@
 
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
   --shadow-raised: 0 2px 4px rgb(16 24 40 / 0.06), 0 12px 32px rgb(16 24 40 / 0.1);
+
+  /* Témoin du mot-marque : l'icône du minuteur donne un bref éclat toutes les
+     cinq secondes, comme un voyant qui rappelle que le temps tourne. Le repos
+     occupe l'essentiel du cycle — une pulsation continue attirerait l'œil sans
+     rien dire, et c'est le contenu de la page qui doit retenir l'attention.
+     Une animation qui se répète à l'infini est exactement ce que
+     `prefers-reduced-motion` doit neutraliser : la règle globale en bas de ce
+     fichier s'en charge, elle ramène toute animation à une seule itération de
+     0,01 ms. */
+  --animate-temoin: temoin 5s ease-in-out infinite;
+
+  @keyframes temoin {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    4% {
+      opacity: 0.45;
+      transform: scale(0.88);
+    }
+    8% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+    12% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 html,

@@ -139,18 +139,33 @@ Trois règles, chacune née d'un défaut constaté :
   chaque enfant devient un bloc, et le même texte se coupe en trois lignes. Le
   mot-marque est donc un simple flux en ligne, où l'icône s'insère comme une
   lettre (`inline-block align-middle`).
-- **Tout est en `em`** — taille, graisse, alignement (`size-[1.05em]`,
-  `stroke-[0.09em]`) : un seul composant tient à `text-base` (barre du haut),
-  `text-lg` (rail) et `text-2xl` (écrans publics), sans variante par taille. La
-  couleur vient du parent : seul « Times » porte `text-brand-strong`, comme
-  avant. L'icône est décorative (`aria-hidden`) : une lettre dessinée, pas une
-  information.
+- **Tout est en `em`** — graisse et alignement (`stroke-[2.4]`, `align-middle`) :
+  la finesse du dessin suit la boîte de l'icône, et non la taille du texte à
+  côté. La couleur vient du parent : seul « Times » porte `text-brand-strong`,
+  comme avant. L'icône est décorative (`aria-hidden`) : une lettre dessinée, pas
+  une information.
 
-La taille n'est pas arbitraire : à `0.85em` — la première mesure — le cercle
-devenait si petit que le bouton du chronomètre se lisait comme un tréma
-(« GeröTimes »). À `1.05em`, le cercle fait environ `0.75em`, la hauteur d'un
-« o » gras, et le chronomètre se reconnaît. C'est une valeur mesurée à l'écran,
-en clair et en sombre, aux trois tailles.
+La **taille** fait exception, et c'est un choix du commanditaire : l'icône est
+figée à `28px`, en `relative` avec `top: -5px` (valeurs demandées à l'œil, après
+comparaison sur le tableau de bord). Elle ne suit donc pas la taille du texte :
+proportionnée sur les écrans publics (`text-2xl`), nettement plus grande que les
+lettres dans la barre du haut du téléphone (`text-base`) — constaté sur captures,
+et jugé acceptable ainsi.
+
+L'icône **clignote par intervalles** : `--animate-temoin` (`globals.css`) donne un
+bref éclat toutes les cinq secondes — opacité `1 → 0,45 → 1,12` en échelle sur
+les premiers 12 % du cycle, repos le reste du temps. Un voyant plutôt qu'une
+pulsation continue : une animation permanente attire l'œil sans rien dire, et
+c'est le contenu qui doit le retenir. Mesuré dans le navigateur : opacité
+descendant à `0,46` sur un cycle de 6 s. Avec `prefers-reduced-motion: reduce`,
+la règle globale du fichier de thème ramène l'animation à `0,01 ms` et une seule
+itération — l'icône reste alors parfaitement immobile (opacité constante à 1).
+
+Historique utile pour la suite : mesurée d'abord à `0.85em`, l'icône se lisait
+comme un tréma sur un « o » (« GeröTimes ») — le bouton du chronomètre ne se
+distinguait pas du cercle. À `1.05em` puis à `28px`, il se reconnaît. Le repère
+de dimensionnement : le cercle occupe les deux tiers de la boîte de l'icône
+(`circle r=8` sur un viewBox de 24), il fait donc ~19 px de diamètre à `28px`.
 
 Mesures de contrôle (Chromium, `ariaSnapshot` et `innerText`) : le texte rendu
 comme le texte du DOM sont exactement « GereoTimes » aux trois tailles. Le nom
