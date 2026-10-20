@@ -1,0 +1,43 @@
+name: Évolution
+description: Une fonctionnalité ou un changement de comportement à décider.
+title: "[Évolution] "
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Besoin
+      description: Le problème d'usage, pas la solution technique.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposition
+    attributes:
+      label: Proposition
+      description: Ce que l'application ferait, vu de l'utilisateur.
+    validations:
+      required: false
+
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Ce qu'il faut pouvoir constater pour dire que c'est fait.
+      placeholder: |
+        - Un administrateur peut…
+        - Un employé ne voit jamais…
+    validations:
+      required: true
+
+  - type: dropdown
+    id: zone
+    attributes:
+      label: Zone
+      options:
+        - Métier (congés, pointage, validations)
+        - Interface et accessibilité
+        - Données et migrations
+        - Déploiement et exploitation
+        - Documentation
+    validations:
+      required: true

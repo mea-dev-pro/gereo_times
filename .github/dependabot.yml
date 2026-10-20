@@ -1,0 +1,49 @@
+version: 2
+updates:
+  # Dépendances applicatives. Les montées groupées tiennent une seule demande
+  # de fusion par famille : Next/React évoluent ensemble, et une demande par
+  # paquet noierait la revue.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Indian/Antananarivo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      next-react:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - eslint-config-next
+          - "@types/react"
+          - "@types/react-dom"
+      supabase:
+        patterns:
+          - "@supabase/*"
+      correctifs:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - next
+          - react
+          - react-dom
+          - eslint-config-next
+          - "@supabase/*"
+        update-types:
+          - minor
+          - patch
+
+  # Actions du dépôt : une passe mensuelle suffit, elles changent rarement et
+  # la CI dit tout de suite si une montée casse quelque chose.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci

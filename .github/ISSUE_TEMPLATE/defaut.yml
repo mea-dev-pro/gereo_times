@@ -1,0 +1,71 @@
+name: Défaut
+description: Quelque chose ne se comporte pas comme prévu.
+title: "[Défaut] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Décrivez ce que l'application fait, puis ce qu'elle devrait faire.
+        Une capture ou la sortie exacte vaut mieux qu'une paraphrase.
+
+  - type: dropdown
+    id: ecran
+    attributes:
+      label: Écran concerné
+      options:
+        - Connexion / inscription / activation
+        - Tableau de bord
+        - Pointage
+        - Congés
+        - Calendrier d'équipe
+        - Validations
+        - Équipe
+        - Rapports et exports
+        - Paramètres
+        - Notifications
+        - Tâche planifiée (/api/cron/quotidien)
+        - Autre / plusieurs
+    validations:
+      required: true
+
+  - type: textarea
+    id: constate
+    attributes:
+      label: Comportement constaté
+      placeholder: Ce qui se passe, avec le message exact s'il y en a un.
+    validations:
+      required: true
+
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      placeholder: |
+        1. Se connecter en tant que…
+        2. Ouvrir…
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: environnement
+    attributes:
+      label: Environnement
+      placeholder: production / local, navigateur et version, largeur d'écran
+    validations:
+      required: false
+
+  - type: textarea
+    id: preuve
+    attributes:
+      label: Trace, capture ou journal
+      description: Sortie de commande, capture d'écran, identifiant de la tâche Vercel.
+    validations:
+      required: false

@@ -1,0 +1,58 @@
+name: CI
+
+# Poussée sur main et chaque demande de fusion. Le nom de la tâche
+# « Vérifications » sert de contrôle requis à la protection de branche : le
+# renommer oblige à réajuster la règle côté GitHub.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verifications:
+    name: Vérifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Valeurs factices : le build ne fait que compiler, il n'ouvre aucune
+      # connexion. Les vraies clés restent dans .env.local et chez Vercel.
+      NEXT_PUBLIC_SUPABASE_URL: https://exemple.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: cle-factice-pour-la-compilation
+      SUPABASE_SERVICE_ROLE_KEY: cle-factice-pour-la-compilation
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+
+      - name: Installer Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      # Les trois contrôles sont ceux du poste : si l'un échoue ici, il
+      # échouerait aussi avant une mise en ligne.
+      - name: Vérifier les types
+        run: npx tsc --noEmit
+
+      - name: Analyser le code
+        run: npm run lint
+
+      - name: Compiler l'application
+        run: npm run build
+
+      # Aucune dépendance externe : PostgreSQL 18 en WASM (PGlite), donc les
+      # migrations et les policies RLS sont réellement exercées, pas simulées.
+      - name: Vérifier les migrations
+        run: npm run db:verify

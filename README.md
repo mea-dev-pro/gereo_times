@@ -210,6 +210,11 @@ Elle contrôle au passage que Supabase accepte l'adresse de retour
 (`/auth/reinitialiser`) : c'est le point qui casse silencieusement un envoi de
 lien quand la liste blanche du projet n'a pas été mise à jour.
 
+Les mêmes contrôles tournent sur GitHub à chaque poussée
+(`.github/workflows/ci.yml` : types, ESLint, build, migrations), et la mise en
+production peut partir de là une fois les secrets Vercel posés — voir
+[`DEPLOIEMENT.md`](./DEPLOIEMENT.md), section 7.
+
 ---
 
 ## Périmètre

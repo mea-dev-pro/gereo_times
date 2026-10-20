@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: État du projet et procédures
+    url: https://github.com/mea-dev-pro/gereo_times/blob/main/DEPLOIEMENT.md
+    about: Variables d'environnement, migrations, mise en ligne, points de vigilance.

@@ -550,3 +550,80 @@ Deux remarques utiles :
 - Reprise après sinistre : procédure de restauration non testée
 - Conformité : les règles de congés et de temps de travail restent à valider
   selon le pays et la convention collective applicable (cf. section 11 du PRD)
+
+---
+
+## 7. Automatisations GitHub
+
+Ce qui se faisait à la main avant une mise en ligne se rejoue désormais sur
+GitHub, dans `.github/`.
+
+### Intégration continue — `.github/workflows/ci.yml`
+
+À chaque poussée sur `main` et à chaque demande de fusion : `npm ci`,
+`npx tsc --noEmit`, `npm run lint`, `npm run build`, puis `npm run db:verify`
+(PostgreSQL 18 en WASM — ni Docker, ni base à joindre). Le build reçoit des
+valeurs Supabase factices : il compile, il ne se connecte à rien.
+
+La tâche s'appelle **Vérifications** — c'est ce nom qu'il faut cocher dans la
+protection de branche.
+
+### Déploiement automatique — `.github/workflows/deploiement.yml`
+
+Après une CI verte sur `main` — ou à la main depuis l'onglet *Actions* — la CLI
+Vercel publie en production, puis contrôle un `HTTP 200` sur l'URL publique.
+Sans les trois secrets ci-dessous, la tâche **ne publie rien et reste verte** :
+elle l'inscrit dans le résumé d'exécution au lieu d'échouer.
+
+À poser une fois dans *Settings → Secrets and variables → Actions* :
+
+| Secret | Valeur |
+| --- | --- |
+| `VERCEL_TOKEN` | vercel.com/account/tokens → *Create token* (portée : équipe DEVProject) |
+| `VERCEL_ORG_ID` | `team_UxYXZi5BDosfy2mkTGNyec0p` |
+| `VERCEL_PROJECT_ID` | `prj_9j5kU6MuMN4Lj0LCeBGBe6XCERfc` |
+
+Les deux identifiants sont ceux de `.vercel/project.json` ; le jeton, lui, ne
+vit que dans les secrets GitHub. En ligne de commande, avec un jeton GitHub
+portant `repo` et `workflow` :
+
+```bash
+gh secret set VERCEL_TOKEN --body "…"
+gh secret set VERCEL_ORG_ID --body "team_UxYXZi5BDosfy2mkTGNyec0p"
+gh secret set VERCEL_PROJECT_ID --body "prj_9j5kU6MuMN4Lj0LCeBGBe6XCERfc"
+```
+
+Tant que l'auto-déploiement Git de Vercel n'est pas branché (section 3), c'est le
+moyen de publier sans passer par le poste. Il ne remplace pas
+`vercel deploy --prod` lancé localement : les deux publient la même chose.
+
+### Dépendances — `.github/dependabot.yml`
+
+Une demande de fusion groupée par semaine — Next/React ensemble, Supabase
+ensemble, le reste en correctifs — et une passe mensuelle sur les actions du
+dépôt. La CI tranche : une montée qui casse le build ne se fusionne pas.
+
+### Modèles de demande
+
+`.github/pull_request_template.md` reprend la liste de vérification de la CI,
+`.github/ISSUE_TEMPLATE/` fournit les formulaires *Défaut* et *Évolution*.
+
+### Ce qui reste à faire côté GitHub
+
+- **Protection de `main`** : exiger une CI verte avant fusion. L'API refuse
+  l'écriture sans jeton GitHub, la commande n'a donc pas été passée :
+
+```bash
+curl -s -X PUT \
+  -H "Authorization: token $GITHUB_TOKEN" \
+  https://api.github.com/repos/mea-dev-pro/gereo_times/branches/main/protection \
+  -d '{"required_status_checks":{"strict":true,"contexts":["Vérifications"]},
+       "enforce_admins":false,
+       "required_pull_request_reviews":null,
+       "restrictions":null}'
+```
+
+- **Étiquettes** : `défaut`, `évolution`, `migration`, `dépendances` — à créer
+  une fois, elles servent au tri des demandes.
+- **Secrets `VERCEL_*`** : à poser pour que le déploiement automatique publie
+  réellement.
